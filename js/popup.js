@@ -189,6 +189,12 @@ async function restoreSession(sessionId) {
     // Create a map to track new tab IDs
     const tabIdMap = {};
 
+    // First, check if we have all the tabs we expect
+    console.log("All tabs in session:", session.tabs);
+
+    // Create a set of tabs that have been processed
+    const processedTabs = new Set();
+
     // Group tabs by their group ID for more efficient restoration
     const tabsByGroup = {};
     const ungroupedTabs = [];
@@ -218,6 +224,9 @@ async function restoreSession(sessionId) {
     if (chrome.tabGroups && session.tabGroups && session.tabGroups.length > 0) {
       for (const group of session.tabGroups) {
         const groupTabs = tabsByGroup[group.id] || [];
+        console.log(
+          `Processing group ${group.name} with ${groupTabs.length} tabs`
+        );
 
         if (groupTabs.length > 0) {
           // Open all tabs for this group
@@ -227,6 +236,7 @@ async function restoreSession(sessionId) {
             const newTab = await chrome.tabs.create({ url: tab.url });
             tabIdMap[tab.id] = newTab.id;
             newTabIds.push(newTab.id);
+            processedTabs.add(tab.id);
           }
 
           // Wait a moment for tabs to load
@@ -248,10 +258,16 @@ async function restoreSession(sessionId) {
       }
     }
 
-    // Always open ungrouped tabs, regardless of whether there were groups or not
-    if (ungroupedTabs.length > 0) {
-      console.log("Restoring ungrouped tabs:", ungroupedTabs.length);
-      for (const tab of ungroupedTabs) {
+    // Find any tabs that weren't in groups or weren't processed yet
+    const remainingTabs = session.tabs.filter(
+      (tab) => !processedTabs.has(tab.id)
+    );
+    console.log(`Found ${remainingTabs.length} remaining tabs to restore`);
+
+    // Restore all remaining tabs
+    if (remainingTabs.length > 0) {
+      for (const tab of remainingTabs) {
+        console.log(`Restoring tab: ${tab.title} (${tab.url})`);
         const newTab = await chrome.tabs.create({ url: tab.url });
         tabIdMap[tab.id] = newTab.id;
       }

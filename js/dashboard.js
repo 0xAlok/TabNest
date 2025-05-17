@@ -631,8 +631,14 @@ async function restoreSession(sessionId, inNewWindow = false) {
       tabGroups: session.tabGroups ? session.tabGroups.length : 0,
     });
 
+    // First, check if we have all the tabs we expect
+    console.log("All tabs in session:", session.tabs);
+
     // Create a map to track new tab IDs
     const tabIdMap = {};
+
+    // Create a set of tabs that have been processed
+    const processedTabs = new Set();
 
     // Group tabs by their group ID for more efficient restoration
     const tabsByGroup = {};
@@ -677,6 +683,9 @@ async function restoreSession(sessionId, inNewWindow = false) {
 
       const newWindow = await chrome.windows.create({ url: firstTab.url });
 
+      // Mark the first tab as processed
+      processedTabs.add(firstTab.id);
+
       // Get the ID of the first tab in the new window
       const tabs = await chrome.tabs.query({ windowId: newWindow.id });
       if (tabs.length > 0) {
@@ -691,6 +700,9 @@ async function restoreSession(sessionId, inNewWindow = false) {
       ) {
         for (const group of session.tabGroups) {
           const groupTabs = tabsByGroup[group.id] || [];
+          console.log(
+            `Processing group ${group.name} with ${groupTabs.length} tabs`
+          );
 
           // Skip the first tab of the first group as it's already opened
           const tabsToOpen =
@@ -715,6 +727,7 @@ async function restoreSession(sessionId, inNewWindow = false) {
               });
               tabIdMap[tab.id] = newTab.id;
               newTabIds.push(newTab.id);
+              processedTabs.add(tab.id);
             }
 
             // Wait a moment for tabs to load
@@ -739,18 +752,24 @@ async function restoreSession(sessionId, inNewWindow = false) {
         }
       }
 
-      // Open ungrouped tabs last (skip the first one if it was already used to create the window)
-      const remainingUngroupedTabs =
-        firstTab === ungroupedTabs[0] && ungroupedTabs.length > 0
-          ? ungroupedTabs.slice(1)
-          : ungroupedTabs;
+      // Find any tabs that weren't in groups or weren't processed yet
+      const remainingTabs = session.tabs.filter(
+        (tab) => !processedTabs.has(tab.id)
+      );
+      console.log(
+        `Found ${remainingTabs.length} remaining tabs to restore in new window`
+      );
 
-      for (const tab of remainingUngroupedTabs) {
-        const newTab = await chrome.tabs.create({
-          windowId: newWindow.id,
-          url: tab.url,
-        });
-        tabIdMap[tab.id] = newTab.id;
+      // Restore all remaining tabs
+      if (remainingTabs.length > 0) {
+        for (const tab of remainingTabs) {
+          console.log(`Restoring tab in new window: ${tab.title} (${tab.url})`);
+          const newTab = await chrome.tabs.create({
+            windowId: newWindow.id,
+            url: tab.url,
+          });
+          tabIdMap[tab.id] = newTab.id;
+        }
       }
     } else {
       // Open in current window
@@ -763,6 +782,9 @@ async function restoreSession(sessionId, inNewWindow = false) {
       ) {
         for (const group of session.tabGroups) {
           const groupTabs = tabsByGroup[group.id] || [];
+          console.log(
+            `Processing group ${group.name} with ${groupTabs.length} tabs`
+          );
 
           if (groupTabs.length > 0) {
             // Open all tabs for this group
@@ -772,6 +794,7 @@ async function restoreSession(sessionId, inNewWindow = false) {
               const newTab = await chrome.tabs.create({ url: tab.url });
               tabIdMap[tab.id] = newTab.id;
               newTabIds.push(newTab.id);
+              processedTabs.add(tab.id);
             }
 
             // Wait a moment for tabs to load
@@ -793,10 +816,18 @@ async function restoreSession(sessionId, inNewWindow = false) {
         }
       }
 
-      // Always open ungrouped tabs, regardless of whether there were groups or not
-      if (ungroupedTabs.length > 0) {
-        console.log("Restoring ungrouped tabs:", ungroupedTabs.length);
-        for (const tab of ungroupedTabs) {
+      // Find any tabs that weren't in groups or weren't processed yet
+      const remainingTabs = session.tabs.filter(
+        (tab) => !processedTabs.has(tab.id)
+      );
+      console.log(
+        `Found ${remainingTabs.length} remaining tabs to restore in current window`
+      );
+
+      // Restore all remaining tabs
+      if (remainingTabs.length > 0) {
+        for (const tab of remainingTabs) {
+          console.log(`Restoring tab: ${tab.title} (${tab.url})`);
           const newTab = await chrome.tabs.create({ url: tab.url });
           tabIdMap[tab.id] = newTab.id;
         }
