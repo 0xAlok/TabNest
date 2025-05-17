@@ -17,6 +17,8 @@ const modalSessionTitle = document.getElementById("modalSessionTitle");
 const modalSessionDate = document.getElementById("modalSessionDate");
 const modalSessionStats = document.getElementById("modalSessionStats");
 const tabsList = document.getElementById("tabsList");
+const sessionNotes = document.getElementById("sessionNotes");
+const saveNotesBtn = document.getElementById("saveNotesBtn");
 const restoreSessionBtn = document.getElementById("restoreSessionBtn");
 const restoreNewWindowBtn = document.getElementById("restoreNewWindowBtn");
 const deleteSessionBtn = document.getElementById("deleteSessionBtn");
@@ -48,6 +50,8 @@ document.addEventListener("DOMContentLoaded", () => {
   listViewBtn.addEventListener("click", () => setViewMode("list"));
 
   closeModalBtn.addEventListener("click", hideSessionModal);
+
+  saveNotesBtn.addEventListener("click", saveSessionNotes);
 
   restoreSessionBtn.addEventListener("click", () =>
     restoreSession(currentSessionId, false)
@@ -112,6 +116,7 @@ async function saveCurrentSession() {
       name: sessionName,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      notes: "",
       tabs: tabs.map((tab) => ({
         id: tab.id.toString(),
         url: tab.url,
@@ -319,6 +324,9 @@ function showSessionDetail(sessionId) {
   modalSessionStats.textContent = `Tabs: ${tabCount} ${
     groupCount > 0 ? `, Groups: ${groupCount}` : ""
   }`;
+
+  // Set notes content
+  sessionNotes.value = session.notes || "";
 
   // Render tabs list
   tabsList.innerHTML = "";
@@ -729,6 +737,33 @@ function importData() {
   } catch (error) {
     console.error("Error importing data:", error);
     showNotification("Error importing data", true);
+  }
+}
+
+async function saveSessionNotes() {
+  if (!currentSessionId) return;
+
+  try {
+    // Find the session
+    const sessionIndex = currentSessions.findIndex(
+      (s) => s.id === currentSessionId
+    );
+    if (sessionIndex === -1) {
+      throw new Error("Session not found");
+    }
+
+    // Update the notes
+    const notes = sessionNotes.value.trim();
+    currentSessions[sessionIndex].notes = notes;
+    currentSessions[sessionIndex].updatedAt = new Date().toISOString();
+
+    // Save to storage
+    await chrome.storage.local.set({ sessions: currentSessions });
+
+    showNotification("Notes saved successfully!");
+  } catch (error) {
+    console.error("Error saving notes:", error);
+    showNotification("Error saving notes", true);
   }
 }
 
