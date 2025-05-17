@@ -1,0 +1,193 @@
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 14px;
+  color: #333;
+  background-color: #f9f9f9;
+}
+
+.container {
+  width: 350px;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header styles */
+header {
+  padding: 15px;
+  background-color: #4285f4;
+  color: white;
+  text-align: center;
+  border-bottom: 1px solid #3367d6;
+}
+
+header h1 {
+  font-size: 20px;
+  font-weight: 500;
+}
+
+/* Main content styles */
+main {
+  flex: 1;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Quick actions section */
+.quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Button styles */
+.btn {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.btn.primary {
+  background-color: #4285f4;
+  color: white;
+}
+
+.btn.primary:hover {
+  background-color: #3367d6;
+}
+
+.btn.secondary {
+  background-color: #f1f1f1;
+  color: #333;
+}
+
+.btn.secondary:hover {
+  background-color: #e4e4e4;
+}
+
+/* Form styles */
+#saveSessionForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  background-color: #f1f1f1;
+  border-radius: 4px;
+}
+
+#saveSessionForm.hidden {
+  display: none;
+}
+
+#sessionName {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* Sessions list styles */
+.sessions-container {
+  flex: 1;
+}
+
+.sessions-container h2 {
+  font-size: 16px;
+  margin-bottom: 10px;
+  color: #555;
+}
+
+.sessions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.session-item {
+  padding: 10px;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.session-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.session-title {
+  font-weight: 500;
+}
+
+.session-date {
+  font-size: 12px;
+  color: #777;
+}
+
+.session-stats {
+  font-size: 12px;
+  color: #555;
+}
+
+.session-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.session-actions button {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.empty-state {
+  padding: 20px;
+  text-align: center;
+  color: #777;
+  font-style: italic;
+}
+
+/* Footer styles */
+footer {
+  padding: 10px 15px;
+  background-color: #f1f1f1;
+  border-top: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dashboard-link {
+  color: #4285f4;
+  text-decoration: none;
+}
+
+.dashboard-link:hover {
+  text-decoration: underline;
+}
+
+.version {
+  font-size: 12px;
+  color: #777;
+}
