@@ -257,7 +257,7 @@ function createSessionCard(session) {
           .map(
             (tab) => `
             <div class="tab-preview">
-              <img src="${tab.favicon}" alt="" onerror="this.src='icons/icon16.png'">
+              <img src="${tab.favicon}" alt="" onerror="this.src='icons/icon32.png'">
             </div>
           `
           )
@@ -303,7 +303,7 @@ function createSessionCard(session) {
       .map(
         (tab) => `
         <div class="tab-preview">
-          <img src="${tab.favicon}" alt="" onerror="this.src='icons/icon16.png'">
+          <img src="${tab.favicon}" alt="" onerror="this.src='icons/icon32.png'">
         </div>
       `
       )
@@ -588,8 +588,8 @@ function createTabItem(tab) {
   return `
     <div class="tab-item">
       <img class="tab-favicon" src="${
-        tab.favicon || "icons/icon16.png"
-      }" onerror="this.src='icons/icon16.png'">
+        tab.favicon || "icons/icon32.png"
+      }" onerror="this.src='icons/icon32.png'">
       <div class="tab-info">
         <span class="tab-title">${tab.title || "Untitled"}</span>
         <span class="tab-url">${domain}</span>
