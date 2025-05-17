@@ -178,6 +178,14 @@ async function restoreSession(sessionId) {
     // Show loading notification
     showNotification("Restoring session...");
 
+    // Debug info
+    console.log("Session to restore:", {
+      id: session.id,
+      name: session.name,
+      totalTabs: session.tabs.length,
+      tabGroups: session.tabGroups ? session.tabGroups.length : 0,
+    });
+
     // Create a map to track new tab IDs
     const tabIdMap = {};
 
@@ -195,6 +203,15 @@ async function restoreSession(sessionId) {
       } else {
         ungroupedTabs.push(tab);
       }
+    });
+
+    // Debug tab organization
+    console.log("Tab organization:", {
+      groupedTabs: Object.keys(tabsByGroup).map((key) => ({
+        groupId: key,
+        tabCount: tabsByGroup[key].length,
+      })),
+      ungroupedTabsCount: ungroupedTabs.length,
     });
 
     // Process each group separately
@@ -231,10 +248,13 @@ async function restoreSession(sessionId) {
       }
     }
 
-    // Open ungrouped tabs last
-    for (const tab of ungroupedTabs) {
-      const newTab = await chrome.tabs.create({ url: tab.url });
-      tabIdMap[tab.id] = newTab.id;
+    // Always open ungrouped tabs, regardless of whether there were groups or not
+    if (ungroupedTabs.length > 0) {
+      console.log("Restoring ungrouped tabs:", ungroupedTabs.length);
+      for (const tab of ungroupedTabs) {
+        const newTab = await chrome.tabs.create({ url: tab.url });
+        tabIdMap[tab.id] = newTab.id;
+      }
     }
 
     showNotification("Session restored successfully!");
