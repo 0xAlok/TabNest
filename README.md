@@ -1,6 +1,6 @@
-# TabSaver Browser Extension
+# TabNest Browser Extension
 
-TabSaver is a browser extension for Chrome/Edge (with Firefox support planned) that allows users to save and restore their current tabs and tab groups with a single click.
+TabNest is a browser extension for Chrome/Edge (with Firefox support planned) that allows users to save and restore their current tabs and tab groups with a single click.
 
 ## Features
 
