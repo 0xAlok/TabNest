@@ -1,44 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TabSaver</title>
-  <link rel="stylesheet" href="css/popup.css">
-</head>
-<body>
-  <div class="container">
-    <header>
-      <h1>TabSaver</h1>
-    </header>
-    
-    <main>
-      <div class="quick-actions">
-        <button id="saveTabsBtn" class="btn primary">Save Current Tabs</button>
-        <div id="saveSessionForm" class="hidden">
-          <input type="text" id="sessionName" placeholder="Session name">
-          <div class="form-actions">
-            <button id="confirmSaveBtn" class="btn primary">Save</button>
-            <button id="cancelSaveBtn" class="btn secondary">Cancel</button>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TabNest</title>
+    <link rel="stylesheet" href="css/popup.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>TabNest</h1>
+      </header>
+
+      <main>
+        <div class="quick-actions">
+          <button id="saveTabsBtn" class="btn primary">
+            Save Current Tabs
+          </button>
+          <div id="saveSessionForm" class="hidden">
+            <input type="text" id="sessionName" placeholder="Session name" />
+            <div class="form-actions">
+              <button id="confirmSaveBtn" class="btn primary">Save</button>
+              <button id="cancelSaveBtn" class="btn secondary">Cancel</button>
+            </div>
           </div>
         </div>
-      </div>
-      
-      <div class="sessions-container">
-        <h2>Saved Sessions</h2>
-        <div id="sessionsList" class="sessions-list">
-          <!-- Sessions will be populated here -->
-          <div class="empty-state">No saved sessions yet</div>
+
+        <div class="sessions-container">
+          <h2>Saved Sessions</h2>
+          <div id="sessionsList" class="sessions-list">
+            <!-- Sessions will be populated here -->
+            <div class="empty-state">No saved sessions yet</div>
+          </div>
         </div>
-      </div>
-    </main>
-    
-    <footer>
-      <a href="dashboard.html" target="_blank" class="dashboard-link">Open Dashboard</a>
-      <span class="version">v0.1.0</span>
-    </footer>
-  </div>
-  
-  <script src="js/popup.js"></script>
-</body>
+      </main>
+
+      <footer>
+        <a href="dashboard.html" target="_blank" class="dashboard-link"
+          >Open Dashboard</a
+        >
+        <span class="version">v0.1.0</span>
+      </footer>
+    </div>
+
+    <script src="js/popup.js"></script>
+  </body>
 </html>

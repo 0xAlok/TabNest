@@ -1,131 +1,167 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TabSaver Dashboard</title>
-  <link rel="stylesheet" href="css/dashboard.css">
-</head>
-<body>
-  <div class="container">
-    <header>
-      <div class="header-content">
-        <h1>TabSaver Dashboard</h1>
-        <div class="search-container">
-          <input type="text" id="searchInput" placeholder="Search sessions...">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tabnest Dashboard</title>
+    <link rel="stylesheet" href="css/dashboard.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div class="header-content">
+          <h1>TabNest Dashboard</h1>
+          <div class="search-container">
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Search sessions..."
+            />
+          </div>
         </div>
-      </div>
-    </header>
-    
-    <main>
-      <div class="sidebar">
-        <div class="actions-panel">
-          <button id="saveCurrentTabsBtn" class="btn primary">Save Current Tabs</button>
-          <div id="saveSessionForm" class="hidden">
-            <input type="text" id="sessionName" placeholder="Session name">
-            <div class="form-actions">
-              <button id="confirmSaveBtn" class="btn primary">Save</button>
-              <button id="cancelSaveBtn" class="btn secondary">Cancel</button>
+      </header>
+
+      <main>
+        <div class="sidebar">
+          <div class="actions-panel">
+            <button id="saveCurrentTabsBtn" class="btn primary">
+              Save Current Tabs
+            </button>
+            <div id="saveSessionForm" class="hidden">
+              <input type="text" id="sessionName" placeholder="Session name" />
+              <div class="form-actions">
+                <button id="confirmSaveBtn" class="btn primary">Save</button>
+                <button id="cancelSaveBtn" class="btn secondary">Cancel</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="filters-panel">
+            <h3>Filters</h3>
+            <div class="filter-group">
+              <label>Sort by:</label>
+              <select id="sortFilter">
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+                <option value="name">Name (A-Z)</option>
+                <option value="tabs">Number of tabs</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label>Date range:</label>
+              <select id="dateFilter">
+                <option value="all">All time</option>
+                <option value="today">Today</option>
+                <option value="week">This week</option>
+                <option value="month">This month</option>
+              </select>
             </div>
           </div>
         </div>
-        
-        <div class="filters-panel">
-          <h3>Filters</h3>
-          <div class="filter-group">
-            <label>Sort by:</label>
-            <select id="sortFilter">
-              <option value="newest">Newest first</option>
-              <option value="oldest">Oldest first</option>
-              <option value="name">Name (A-Z)</option>
-              <option value="tabs">Number of tabs</option>
-            </select>
+
+        <div class="content">
+          <div class="sessions-header">
+            <h2>Saved Sessions</h2>
+            <div class="view-options">
+              <button
+                id="gridViewBtn"
+                class="view-btn active"
+                title="Grid View"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="3" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="14" width="7" height="7"></rect>
+                  <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+              </button>
+              <button id="listViewBtn" class="view-btn" title="List View">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <line x1="8" y1="6" x2="21" y2="6"></line>
+                  <line x1="8" y1="12" x2="21" y2="12"></line>
+                  <line x1="8" y1="18" x2="21" y2="18"></line>
+                  <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                  <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                  <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                </svg>
+              </button>
+            </div>
           </div>
-          
-          <div class="filter-group">
-            <label>Date range:</label>
-            <select id="dateFilter">
-              <option value="all">All time</option>
-              <option value="today">Today</option>
-              <option value="week">This week</option>
-              <option value="month">This month</option>
-            </select>
+
+          <div id="sessionsContainer" class="sessions-grid">
+            <!-- Sessions will be populated here -->
+            <div class="empty-state">
+              <p>No saved sessions yet</p>
+              <button id="createFirstSessionBtn" class="btn primary">
+                Save Your First Session
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-      
-      <div class="content">
-        <div class="sessions-header">
-          <h2>Saved Sessions</h2>
-          <div class="view-options">
-            <button id="gridViewBtn" class="view-btn active" title="Grid View">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="7" height="7"></rect>
-                <rect x="14" y="3" width="7" height="7"></rect>
-                <rect x="14" y="14" width="7" height="7"></rect>
-                <rect x="3" y="14" width="7" height="7"></rect>
-              </svg>
+      </main>
+
+      <footer>
+        <div class="footer-content">
+          <span>TabNest v0.1.0</span>
+          <a href="#" id="exportDataBtn">Export Data</a>
+          <a href="#" id="importDataBtn">Import Data</a>
+          <a href="#" id="settingsBtn">Settings</a>
+        </div>
+      </footer>
+    </div>
+
+    <!-- Session Detail Modal -->
+    <div id="sessionDetailModal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modalSessionTitle">Session Title</h2>
+          <button id="closeModalBtn" class="close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="session-meta">
+            <span id="modalSessionDate">Date: </span>
+            <span id="modalSessionStats">Tabs: </span>
+          </div>
+          <div class="session-actions">
+            <button id="restoreSessionBtn" class="btn primary">
+              Restore Session
             </button>
-            <button id="listViewBtn" class="view-btn" title="List View">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="8" y1="6" x2="21" y2="6"></line>
-                <line x1="8" y1="12" x2="21" y2="12"></line>
-                <line x1="8" y1="18" x2="21" y2="18"></line>
-                <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                <line x1="3" y1="18" x2="3.01" y2="18"></line>
-              </svg>
+            <button id="restoreNewWindowBtn" class="btn secondary">
+              Restore in New Window
             </button>
+            <button id="deleteSessionBtn" class="btn danger">Delete</button>
           </div>
-        </div>
-        
-        <div id="sessionsContainer" class="sessions-grid">
-          <!-- Sessions will be populated here -->
-          <div class="empty-state">
-            <p>No saved sessions yet</p>
-            <button id="createFirstSessionBtn" class="btn primary">Save Your First Session</button>
-          </div>
-        </div>
-      </div>
-    </main>
-    
-    <footer>
-      <div class="footer-content">
-        <span>TabSaver v0.1.0</span>
-        <a href="#" id="exportDataBtn">Export Data</a>
-        <a href="#" id="importDataBtn">Import Data</a>
-        <a href="#" id="settingsBtn">Settings</a>
-      </div>
-    </footer>
-  </div>
-  
-  <!-- Session Detail Modal -->
-  <div id="sessionDetailModal" class="modal hidden">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2 id="modalSessionTitle">Session Title</h2>
-        <button id="closeModalBtn" class="close-btn">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="session-meta">
-          <span id="modalSessionDate">Date: </span>
-          <span id="modalSessionStats">Tabs: </span>
-        </div>
-        <div class="session-actions">
-          <button id="restoreSessionBtn" class="btn primary">Restore Session</button>
-          <button id="restoreNewWindowBtn" class="btn secondary">Restore in New Window</button>
-          <button id="deleteSessionBtn" class="btn danger">Delete</button>
-        </div>
-        <div class="tabs-container">
-          <h3>Tabs</h3>
-          <div id="tabsList" class="tabs-list">
-            <!-- Tabs will be populated here -->
+          <div class="tabs-container">
+            <h3>Tabs</h3>
+            <div id="tabsList" class="tabs-list">
+              <!-- Tabs will be populated here -->
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-  
-  <script src="js/dashboard.js"></script>
-</body>
+
+    <script src="js/dashboard.js"></script>
+  </body>
 </html>
