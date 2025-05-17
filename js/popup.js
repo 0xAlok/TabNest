@@ -5,6 +5,8 @@ const sessionNameInput = document.getElementById("sessionName");
 const confirmSaveBtn = document.getElementById("confirmSaveBtn");
 const cancelSaveBtn = document.getElementById("cancelSaveBtn");
 const sessionsList = document.getElementById("sessionsList");
+const exportBtn = document.getElementById("exportBtn");
+const importBtn = document.getElementById("importBtn");
 
 // Event Listeners
 document.addEventListener("DOMContentLoaded", () => {
@@ -15,6 +17,8 @@ document.addEventListener("DOMContentLoaded", () => {
   saveTabsBtn.addEventListener("click", showSaveForm);
   confirmSaveBtn.addEventListener("click", saveCurrentSession);
   cancelSaveBtn.addEventListener("click", hideSaveForm);
+  exportBtn.addEventListener("click", exportData);
+  importBtn.addEventListener("click", importData);
 });
 
 // Functions
@@ -238,6 +242,139 @@ async function saveSession(session) {
   const sessions = await getSavedSessions();
   sessions.push(session);
   await chrome.storage.local.set({ sessions });
+}
+
+// Export/Import functions
+function exportData() {
+  try {
+    // Get all sessions
+    chrome.storage.local.get("sessions", (data) => {
+      if (!data.sessions || data.sessions.length === 0) {
+        showNotification("No sessions to export", true);
+        return;
+      }
+
+      // Create export object with metadata
+      const exportData = {
+        version: "1.0",
+        exportDate: new Date().toISOString(),
+        sessions: data.sessions,
+      };
+
+      // Convert to JSON string
+      const jsonString = JSON.stringify(exportData, null, 2);
+
+      // Create blob and download link
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+
+      // Create download link
+      const downloadLink = document.createElement("a");
+      downloadLink.href = url;
+      downloadLink.download = `tabnest-export-${new Date()
+        .toISOString()
+        .slice(0, 10)}.json`;
+
+      // Trigger download
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(downloadLink);
+        URL.revokeObjectURL(url);
+      }, 100);
+
+      showNotification("Sessions exported successfully");
+    });
+  } catch (error) {
+    console.error("Error exporting data:", error);
+    showNotification("Error exporting data", true);
+  }
+}
+
+function importData() {
+  try {
+    // Create file input element
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = ".json";
+
+    // Handle file selection
+    fileInput.addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+
+      reader.onload = async (e) => {
+        try {
+          // Parse JSON
+          const importData = JSON.parse(e.target.result);
+
+          // Validate import data
+          if (!importData.sessions || !Array.isArray(importData.sessions)) {
+            throw new Error("Invalid import file format");
+          }
+
+          // Get current sessions
+          const data = await chrome.storage.local.get("sessions");
+          const currentSessions = data.sessions || [];
+
+          // Confirm import if there are existing sessions
+          let shouldImport = true;
+          if (currentSessions.length > 0) {
+            shouldImport = confirm(
+              `You have ${currentSessions.length} existing session(s). Do you want to:\n\n` +
+                "- Click OK to add imported sessions to your existing ones\n" +
+                "- Click Cancel to replace all existing sessions with imported ones"
+            );
+          }
+
+          // Prepare new sessions array
+          let newSessions;
+          if (shouldImport) {
+            // Add imported sessions to existing ones
+            newSessions = [...currentSessions, ...importData.sessions];
+          } else {
+            // Replace existing sessions
+            newSessions = importData.sessions;
+          }
+
+          // Save to storage
+          await chrome.storage.local.set({ sessions: newSessions });
+
+          // Reload sessions in UI
+          loadSavedSessions();
+
+          showNotification(
+            `Successfully imported ${importData.sessions.length} session(s)`
+          );
+        } catch (error) {
+          console.error("Error parsing import file:", error);
+          showNotification("Error importing: Invalid file format", true);
+        }
+      };
+
+      reader.onerror = () => {
+        showNotification("Error reading import file", true);
+      };
+
+      reader.readAsText(file);
+    });
+
+    // Trigger file selection
+    document.body.appendChild(fileInput);
+    fileInput.click();
+
+    // Clean up
+    setTimeout(() => {
+      document.body.removeChild(fileInput);
+    }, 100);
+  } catch (error) {
+    console.error("Error importing data:", error);
+    showNotification("Error importing data", true);
+  }
 }
 
 // UI helpers
