@@ -230,18 +230,112 @@ function createSessionCard(session) {
   const tabCount = session.tabs.length;
   const groupCount = session.tabGroups.length;
 
-  // Get up to 8 favicons for preview
-  const favicons = session.tabs
-    .filter((tab) => tab.favicon)
-    .slice(0, 8)
-    .map(
-      (tab) => `
-      <div class="tab-preview">
-        <img src="${tab.favicon}" alt="" onerror="this.src='icons/icon16.png'">
+  // Create a more organized preview that shows tab groups
+  let previewContent = "";
+
+  // If there are tab groups, show them first
+  if (groupCount > 0) {
+    // Group tabs by their group ID
+    const tabsByGroup = {};
+    session.tabs.forEach((tab) => {
+      if (tab.groupId) {
+        if (!tabsByGroup[tab.groupId]) {
+          tabsByGroup[tab.groupId] = [];
+        }
+        tabsByGroup[tab.groupId].push(tab);
+      }
+    });
+
+    // Create preview for each group
+    session.tabGroups.forEach((group) => {
+      const groupTabs = tabsByGroup[group.id] || [];
+      if (groupTabs.length > 0) {
+        // Get up to 4 favicons for this group
+        const groupFavicons = groupTabs
+          .filter((tab) => tab.favicon)
+          .slice(0, 4)
+          .map(
+            (tab) => `
+            <div class="tab-preview">
+              <img src="${tab.favicon}" alt="" onerror="this.src='icons/icon16.png'">
+            </div>
+          `
+          )
+          .join("");
+
+        previewContent += `
+          <div class="group-preview" style="border-left: 3px solid ${
+            group.color
+          }">
+            <div class="group-preview-header">
+              <span class="group-preview-name">${
+                group.name || "Unnamed group"
+              }</span>
+              <span class="group-preview-count">${groupTabs.length} tab${
+          groupTabs.length !== 1 ? "s" : ""
+        }</span>
+            </div>
+            <div class="group-preview-favicons">
+              ${groupFavicons}
+              ${
+                groupTabs.length > 4
+                  ? `<div class="tab-preview more-indicator">+${
+                      groupTabs.length - 4
+                    }</div>`
+                  : ""
+              }
+            </div>
+          </div>
+        `;
+      }
+    });
+  }
+
+  // Get ungrouped tabs
+  const ungroupedTabs = session.tabs.filter((tab) => !tab.groupId);
+
+  // If there are ungrouped tabs, show them after groups
+  if (ungroupedTabs.length > 0) {
+    // Get up to 4 favicons for ungrouped tabs
+    const ungroupedFavicons = ungroupedTabs
+      .filter((tab) => tab.favicon)
+      .slice(0, 4)
+      .map(
+        (tab) => `
+        <div class="tab-preview">
+          <img src="${tab.favicon}" alt="" onerror="this.src='icons/icon16.png'">
+        </div>
+      `
+      )
+      .join("");
+
+    previewContent += `
+      <div class="ungrouped-preview">
+        <div class="ungrouped-preview-header">
+          <span class="ungrouped-preview-name">Ungrouped tabs</span>
+          <span class="ungrouped-preview-count">${ungroupedTabs.length} tab${
+      ungroupedTabs.length !== 1 ? "s" : ""
+    }</span>
+        </div>
+        <div class="ungrouped-preview-favicons">
+          ${ungroupedFavicons}
+          ${
+            ungroupedTabs.length > 4
+              ? `<div class="tab-preview more-indicator">+${
+                  ungroupedTabs.length - 4
+                }</div>`
+              : ""
+          }
+        </div>
       </div>
-    `
-    )
-    .join("");
+    `;
+  }
+
+  // If no preview content was generated, show a placeholder
+  if (!previewContent) {
+    previewContent =
+      '<div class="empty-preview">No tab preview available</div>';
+  }
 
   return `
     <div class="session-card" data-id="${session.id}">
@@ -259,7 +353,7 @@ function createSessionCard(session) {
           }
         </div>
         <div class="card-preview">
-          ${favicons || '<div class="tab-preview"></div>'}
+          ${previewContent}
         </div>
       </div>
       <div class="card-actions">
@@ -279,6 +373,39 @@ function createSessionListItem(session) {
   const tabCount = session.tabs.length;
   const groupCount = session.tabGroups.length;
 
+  // Create group indicators
+  let groupIndicators = "";
+
+  if (groupCount > 0) {
+    groupIndicators = session.tabGroups
+      .map((group) => {
+        // Count tabs in this group
+        const groupTabCount = session.tabs.filter(
+          (tab) => tab.groupId === group.id
+        ).length;
+        return `
+        <div class="list-group-indicator" style="background-color: ${
+          group.color
+        }">
+          <span class="group-name">${group.name || "Unnamed"}</span>
+          <span class="group-count">${groupTabCount}</span>
+        </div>
+      `;
+      })
+      .join("");
+  }
+
+  // Count ungrouped tabs
+  const ungroupedCount = session.tabs.filter((tab) => !tab.groupId).length;
+  if (ungroupedCount > 0) {
+    groupIndicators += `
+      <div class="list-group-indicator ungrouped">
+        <span class="group-name">Ungrouped</span>
+        <span class="group-count">${ungroupedCount}</span>
+      </div>
+    `;
+  }
+
   return `
     <div class="session-list-item" data-id="${session.id}">
       <div class="list-item-content">
@@ -294,6 +421,15 @@ function createSessionListItem(session) {
             }
           </span>
         </div>
+        ${
+          groupCount > 0 || ungroupedCount > 0
+            ? `
+        <div class="list-item-groups">
+          ${groupIndicators}
+        </div>
+        `
+            : ""
+        }
       </div>
       <div class="list-item-actions">
         <button class="btn primary restore-btn" data-id="${
@@ -352,12 +488,25 @@ function showSessionDetail(sessionId) {
 
     const groupElement = document.createElement("div");
     groupElement.className = "tab-group";
+
+    // Create a more visually distinct group header
     groupElement.innerHTML = `
-      <div class="group-header" style="color: ${group.color}">
-        <span class="group-name">${group.name || "Unnamed group"}</span>
-        <span class="group-count">${groupTabs.length} tab${
+      <div class="group-header" style="background-color: ${
+        group.color
+      }20; border-left: 4px solid ${group.color}">
+        <div class="group-header-content">
+          <span class="group-name">${group.name || "Unnamed group"}</span>
+          <span class="group-count">${groupTabs.length} tab${
       groupTabs.length !== 1 ? "s" : ""
     }</span>
+        </div>
+        <div class="group-actions">
+          <button class="group-expand-btn" title="Expand/Collapse Group">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+        </div>
       </div>
     `;
 
@@ -370,25 +519,90 @@ function showSessionDetail(sessionId) {
 
     groupElement.appendChild(tabsContainer);
     tabsList.appendChild(groupElement);
+
+    // Add event listener to expand/collapse button
+    const expandBtn = groupElement.querySelector(".group-expand-btn");
+    expandBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      tabsContainer.classList.toggle("collapsed");
+      expandBtn.classList.toggle("collapsed");
+    });
   });
 
-  // Add ungrouped tabs
-  ungroupedTabs.forEach((tab) => {
-    tabsList.innerHTML += createTabItem(tab);
-  });
+  // Add ungrouped tabs with a header
+  if (ungroupedTabs.length > 0) {
+    const ungroupedElement = document.createElement("div");
+    ungroupedElement.className = "tab-group ungrouped";
+
+    ungroupedElement.innerHTML = `
+      <div class="group-header ungrouped">
+        <div class="group-header-content">
+          <span class="group-name">Ungrouped tabs</span>
+          <span class="group-count">${ungroupedTabs.length} tab${
+      ungroupedTabs.length !== 1 ? "s" : ""
+    }</span>
+        </div>
+        <div class="group-actions">
+          <button class="group-expand-btn" title="Expand/Collapse Group">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
+    `;
+
+    const tabsContainer = document.createElement("div");
+    tabsContainer.className = "group-tabs";
+
+    ungroupedTabs.forEach((tab) => {
+      tabsContainer.innerHTML += createTabItem(tab);
+    });
+
+    ungroupedElement.appendChild(tabsContainer);
+    tabsList.appendChild(ungroupedElement);
+
+    // Add event listener to expand/collapse button
+    const expandBtn = ungroupedElement.querySelector(".group-expand-btn");
+    expandBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      tabsContainer.classList.toggle("collapsed");
+      expandBtn.classList.toggle("collapsed");
+    });
+  }
 
   // Show modal
   sessionDetailModal.classList.remove("hidden");
 }
 
 function createTabItem(tab) {
+  // Extract domain from URL for better display
+  let domain = "";
+  try {
+    const url = new URL(tab.url);
+    domain = url.hostname;
+  } catch (e) {
+    domain = tab.url;
+  }
+
   return `
     <div class="tab-item">
       <img class="tab-favicon" src="${
         tab.favicon || "icons/icon16.png"
       }" onerror="this.src='icons/icon16.png'">
-      <span class="tab-title">${tab.title || "Untitled"}</span>
-      <span class="tab-url">${tab.url}</span>
+      <div class="tab-info">
+        <span class="tab-title">${tab.title || "Untitled"}</span>
+        <span class="tab-url">${domain}</span>
+      </div>
+      <a href="${
+        tab.url
+      }" class="tab-open-link" title="Open tab in new window" target="_blank">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <line x1="10" y1="14" x2="21" y2="3"></line>
+        </svg>
+      </a>
     </div>
   `;
 }
@@ -406,101 +620,164 @@ async function restoreSession(sessionId, inNewWindow = false) {
       throw new Error("Session not found");
     }
 
+    // Show loading notification
+    showNotification("Restoring session...");
+
     // Create a map to track new tab IDs
     const tabIdMap = {};
 
+    // Group tabs by their group ID for more efficient restoration
+    const tabsByGroup = {};
+    const ungroupedTabs = [];
+
+    // Organize tabs by their group
+    session.tabs.forEach((tab) => {
+      if (tab.groupId) {
+        if (!tabsByGroup[tab.groupId]) {
+          tabsByGroup[tab.groupId] = [];
+        }
+        tabsByGroup[tab.groupId].push(tab);
+      } else {
+        ungroupedTabs.push(tab);
+      }
+    });
+
     if (inNewWindow) {
-      // Create new window with first tab
-      const firstTab = session.tabs[0];
+      // Create new window (we'll use the first tab from the first group or an ungrouped tab)
+      let firstTab;
+      if (session.tabGroups && session.tabGroups.length > 0) {
+        const firstGroupId = session.tabGroups[0].id;
+        firstTab =
+          tabsByGroup[firstGroupId] && tabsByGroup[firstGroupId].length > 0
+            ? tabsByGroup[firstGroupId][0]
+            : ungroupedTabs.length > 0
+            ? ungroupedTabs[0]
+            : session.tabs[0];
+      } else {
+        firstTab =
+          ungroupedTabs.length > 0 ? ungroupedTabs[0] : session.tabs[0];
+      }
+
       const newWindow = await chrome.windows.create({ url: firstTab.url });
 
-      // Store the first tab's ID
-      if (firstTab.id) {
-        // Get the ID of the first tab in the new window
-        const tabs = await chrome.tabs.query({ windowId: newWindow.id });
-        if (tabs.length > 0) {
-          tabIdMap[firstTab.id] = tabs[0].id;
+      // Get the ID of the first tab in the new window
+      const tabs = await chrome.tabs.query({ windowId: newWindow.id });
+      if (tabs.length > 0) {
+        tabIdMap[firstTab.id] = tabs[0].id;
+      }
+
+      // Process each group separately
+      if (
+        chrome.tabGroups &&
+        session.tabGroups &&
+        session.tabGroups.length > 0
+      ) {
+        for (const group of session.tabGroups) {
+          const groupTabs = tabsByGroup[group.id] || [];
+
+          // Skip the first tab of the first group as it's already opened
+          const tabsToOpen =
+            group.id === session.tabGroups[0].id && groupTabs.length > 0
+              ? groupTabs.slice(1)
+              : groupTabs;
+
+          if (tabsToOpen.length > 0) {
+            // Open all tabs for this group
+            const newTabIds = [];
+
+            // Add the first tab ID if it belongs to this group
+            if (group.id === session.tabGroups[0].id && groupTabs.length > 0) {
+              newTabIds.push(tabIdMap[firstTab.id]);
+            }
+
+            // Open remaining tabs in the group
+            for (const tab of tabsToOpen) {
+              const newTab = await chrome.tabs.create({
+                windowId: newWindow.id,
+                url: tab.url,
+              });
+              tabIdMap[tab.id] = newTab.id;
+              newTabIds.push(newTab.id);
+            }
+
+            // Wait a moment for tabs to load
+            await new Promise((resolve) => setTimeout(resolve, 300));
+
+            // Create a group with these tabs
+            if (newTabIds.length > 0) {
+              const groupId = await chrome.tabs.group({
+                tabIds: newTabIds,
+                windowId: newWindow.id,
+              });
+
+              // Set the group's name and color
+              if (groupId) {
+                await chrome.tabGroups.update(groupId, {
+                  title: group.name,
+                  color: group.color,
+                });
+              }
+            }
+          }
         }
       }
 
-      // Open remaining tabs in the new window
-      for (let i = 1; i < session.tabs.length; i++) {
-        const tab = session.tabs[i];
+      // Open ungrouped tabs last (skip the first one if it was already used to create the window)
+      const remainingUngroupedTabs =
+        firstTab === ungroupedTabs[0] && ungroupedTabs.length > 0
+          ? ungroupedTabs.slice(1)
+          : ungroupedTabs;
+
+      for (const tab of remainingUngroupedTabs) {
         const newTab = await chrome.tabs.create({
           windowId: newWindow.id,
           url: tab.url,
         });
         tabIdMap[tab.id] = newTab.id;
       }
-
-      // Wait a moment for tabs to load
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Now create tab groups and add tabs to them
+    } else {
+      // Open in current window - process each group separately
       if (
         chrome.tabGroups &&
         session.tabGroups &&
         session.tabGroups.length > 0
       ) {
         for (const group of session.tabGroups) {
-          // Get the new tab IDs for this group
-          const tabIds = group.tabs
-            .map((oldTabId) => tabIdMap[oldTabId])
-            .filter((id) => id !== undefined);
+          const groupTabs = tabsByGroup[group.id] || [];
 
-          if (tabIds.length > 0) {
-            // Create a new group with these tabs
-            const groupId = await chrome.tabs.group({
-              tabIds,
-              windowId: newWindow.id,
-            });
+          if (groupTabs.length > 0) {
+            // Open all tabs for this group
+            const newTabIds = [];
 
-            // Set the group's name and color
-            if (groupId) {
-              await chrome.tabGroups.update(groupId, {
-                title: group.name,
-                color: group.color,
-              });
+            for (const tab of groupTabs) {
+              const newTab = await chrome.tabs.create({ url: tab.url });
+              tabIdMap[tab.id] = newTab.id;
+              newTabIds.push(newTab.id);
+            }
+
+            // Wait a moment for tabs to load
+            await new Promise((resolve) => setTimeout(resolve, 300));
+
+            // Create a group with these tabs
+            if (newTabIds.length > 0) {
+              const groupId = await chrome.tabs.group({ tabIds: newTabIds });
+
+              // Set the group's name and color
+              if (groupId) {
+                await chrome.tabGroups.update(groupId, {
+                  title: group.name,
+                  color: group.color,
+                });
+              }
             }
           }
         }
       }
-    } else {
-      // Open in current window
-      // First, open all tabs and store their new IDs
-      for (const tab of session.tabs) {
+
+      // Open ungrouped tabs last
+      for (const tab of ungroupedTabs) {
         const newTab = await chrome.tabs.create({ url: tab.url });
         tabIdMap[tab.id] = newTab.id;
-      }
-
-      // Wait a moment for tabs to load
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Now create tab groups and add tabs to them
-      if (
-        chrome.tabGroups &&
-        session.tabGroups &&
-        session.tabGroups.length > 0
-      ) {
-        for (const group of session.tabGroups) {
-          // Get the new tab IDs for this group
-          const tabIds = group.tabs
-            .map((oldTabId) => tabIdMap[oldTabId])
-            .filter((id) => id !== undefined);
-
-          if (tabIds.length > 0) {
-            // Create a new group with these tabs
-            const groupId = await chrome.tabs.group({ tabIds });
-
-            // Set the group's name and color
-            if (groupId) {
-              await chrome.tabGroups.update(groupId, {
-                title: group.name,
-                color: group.color,
-              });
-            }
-          }
-        }
       }
     }
 

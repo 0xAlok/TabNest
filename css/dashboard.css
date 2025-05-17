@@ -169,6 +169,42 @@ main {
   gap: 10px;
 }
 
+/* List item group indicators */
+.list-item-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.list-group-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  color: white;
+}
+
+.list-group-indicator.ungrouped {
+  background-color: #888;
+}
+
+.group-name {
+  max-width: 80px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.group-count {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  padding: 1px 5px;
+  font-size: 10px;
+}
+
 /* Session card styles */
 .session-card {
   background-color: white;
@@ -216,6 +252,47 @@ main {
 
 .card-preview {
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.group-preview,
+.ungrouped-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+}
+
+.group-preview {
+  border-left: 3px solid;
+}
+
+.group-preview-header,
+.ungrouped-preview-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.group-preview-name,
+.ungrouped-preview-name {
+  font-weight: 500;
+}
+
+.group-preview-count,
+.ungrouped-preview-count {
+  color: #777;
+}
+
+.group-preview-favicons,
+.ungrouped-preview-favicons {
+  display: flex;
   flex-wrap: wrap;
   gap: 5px;
 }
@@ -232,6 +309,22 @@ main {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.more-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #777;
+  background-color: #eee;
+}
+
+.empty-preview {
+  padding: 10px;
+  text-align: center;
+  color: #777;
+  font-style: italic;
 }
 
 .card-actions {
@@ -386,25 +479,105 @@ footer a:hover {
 .tabs-list {
   display: flex;
   flex-direction: column;
+  gap: 12px;
+}
+
+/* Tab group styles */
+.tab-group {
+  display: flex;
+  flex-direction: column;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 5px;
+}
+
+.group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #eee;
+}
+
+.group-header-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.group-name {
+  font-weight: 500;
+}
+
+.group-count {
+  font-size: 12px;
+  color: #666;
+}
+
+.group-actions {
+  display: flex;
   gap: 5px;
+}
+
+.group-expand-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+}
+
+.group-expand-btn.collapsed {
+  transform: rotate(-90deg);
+}
+
+.group-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background-color: white;
+  transition: max-height 0.3s;
+  overflow: hidden;
+}
+
+.group-tabs.collapsed {
+  max-height: 0;
 }
 
 .tab-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px;
-  border: 1px solid #eee;
-  border-radius: 4px;
+  padding: 10px 15px;
+  border-bottom: 1px solid #f5f5f5;
+  background-color: white;
+}
+
+.tab-item:last-child {
+  border-bottom: none;
 }
 
 .tab-favicon {
   width: 16px;
   height: 16px;
+  flex-shrink: 0;
+}
+
+.tab-info {
+  flex: 1;
+  min-width: 0; /* Needed for text-overflow to work in a flex child */
+  display: flex;
+  flex-direction: column;
 }
 
 .tab-title {
-  flex: 1;
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -413,10 +586,27 @@ footer a:hover {
 .tab-url {
   color: #777;
   font-size: 12px;
-  max-width: 300px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.tab-open-link {
+  color: #4285f4;
+  padding: 5px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tab-open-link:hover {
+  background-color: #f1f1f1;
+}
+
+/* Ungrouped tabs header */
+.group-header.ungrouped {
+  background-color: #f0f0f0;
 }
 
 /* Form styles */

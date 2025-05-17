@@ -175,39 +175,66 @@ async function restoreSession(sessionId) {
       throw new Error("Session not found");
     }
 
+    // Show loading notification
+    showNotification("Restoring session...");
+
     // Create a map to track new tab IDs
     const tabIdMap = {};
 
-    // First, open all tabs and store their new IDs
-    for (const tab of session.tabs) {
-      const newTab = await chrome.tabs.create({ url: tab.url });
-      tabIdMap[tab.id] = newTab.id;
-    }
+    // Group tabs by their group ID for more efficient restoration
+    const tabsByGroup = {};
+    const ungroupedTabs = [];
 
-    // Wait a moment for tabs to load
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    // Organize tabs by their group
+    session.tabs.forEach((tab) => {
+      if (tab.groupId) {
+        if (!tabsByGroup[tab.groupId]) {
+          tabsByGroup[tab.groupId] = [];
+        }
+        tabsByGroup[tab.groupId].push(tab);
+      } else {
+        ungroupedTabs.push(tab);
+      }
+    });
 
-    // Now create tab groups and add tabs to them
+    // Process each group separately
     if (chrome.tabGroups && session.tabGroups && session.tabGroups.length > 0) {
       for (const group of session.tabGroups) {
-        // Get the new tab IDs for this group
-        const tabIds = group.tabs
-          .map((oldTabId) => tabIdMap[oldTabId])
-          .filter((id) => id !== undefined);
+        const groupTabs = tabsByGroup[group.id] || [];
 
-        if (tabIds.length > 0) {
-          // Create a new group with these tabs
-          const groupId = await chrome.tabs.group({ tabIds });
+        if (groupTabs.length > 0) {
+          // Open all tabs for this group
+          const newTabIds = [];
 
-          // Set the group's name and color
-          if (groupId) {
-            await chrome.tabGroups.update(groupId, {
-              title: group.name,
-              color: group.color,
-            });
+          for (const tab of groupTabs) {
+            const newTab = await chrome.tabs.create({ url: tab.url });
+            tabIdMap[tab.id] = newTab.id;
+            newTabIds.push(newTab.id);
+          }
+
+          // Wait a moment for tabs to load
+          await new Promise((resolve) => setTimeout(resolve, 300));
+
+          // Create a group with these tabs
+          if (newTabIds.length > 0) {
+            const groupId = await chrome.tabs.group({ tabIds: newTabIds });
+
+            // Set the group's name and color
+            if (groupId) {
+              await chrome.tabGroups.update(groupId, {
+                title: group.name,
+                color: group.color,
+              });
+            }
           }
         }
       }
+    }
+
+    // Open ungrouped tabs last
+    for (const tab of ungroupedTabs) {
+      const newTab = await chrome.tabs.create({ url: tab.url });
+      tabIdMap[tab.id] = newTab.id;
     }
 
     showNotification("Session restored successfully!");
