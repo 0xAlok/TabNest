@@ -1,3 +1,5 @@
+// dashboard.js
+
 // DOM Elements
 const saveCurrentTabsBtn = document.getElementById("saveCurrentTabsBtn");
 const createFirstSessionBtn = document.getElementById("createFirstSessionBtn");
@@ -33,12 +35,10 @@ let viewMode = "grid";
 
 // Event Listeners
 document.addEventListener("DOMContentLoaded", () => {
-  // Load saved sessions
   loadSavedSessions();
 
-  // Set up event listeners
   saveCurrentTabsBtn.addEventListener("click", showSaveForm);
-  createFirstSessionBtn.addEventListener("click", showSaveForm);
+  // createFirstSessionBtn is dynamically added, listener attached in renderSessions
   confirmSaveBtn.addEventListener("click", saveCurrentSession);
   cancelSaveBtn.addEventListener("click", hideSaveForm);
 
@@ -53,15 +53,41 @@ document.addEventListener("DOMContentLoaded", () => {
 
   saveNotesBtn.addEventListener("click", saveSessionNotes);
 
-  restoreSessionBtn.addEventListener("click", () =>
-    restoreSession(currentSessionId, false)
-  );
-  restoreNewWindowBtn.addEventListener("click", () =>
-    restoreSession(currentSessionId, true)
-  );
+  restoreSessionBtn.addEventListener("click", () => {
+    if (currentSessionId) {
+      chrome.runtime.sendMessage(
+        {
+          action: "restoreSession",
+          sessionId: currentSessionId,
+          inNewWindow: false,
+        },
+        (response) => {
+          handleRestoreResponse(response);
+        }
+      );
+    }
+  });
+
+  restoreNewWindowBtn.addEventListener("click", () => {
+    if (currentSessionId) {
+      chrome.runtime.sendMessage(
+        {
+          action: "restoreSession",
+          sessionId: currentSessionId,
+          inNewWindow: true,
+        },
+        (response) => {
+          handleRestoreResponse(response);
+        }
+      );
+    }
+  });
+
   deleteSessionBtn.addEventListener("click", () => {
-    deleteSession(currentSessionId);
-    hideSessionModal();
+    if (currentSessionId) {
+      deleteSession(currentSessionId);
+      hideSessionModal();
+    }
   });
 
   exportDataBtn.addEventListener("click", exportData);
@@ -69,18 +95,26 @@ document.addEventListener("DOMContentLoaded", () => {
   settingsBtn.addEventListener("click", openSettings);
 });
 
+function handleRestoreResponse(response) {
+  if (response?.success) {
+    showNotification("Session restoration initiated successfully!");
+    // Optionally, close the modal or provide other UI feedback
+    // hideSessionModal(); // If you want to close modal after initiating restore
+  } else {
+    showNotification(
+      `Failed to restore session: ${response?.error || "Unknown error"}`,
+      true
+    );
+  }
+}
+
 // Functions
 function showSaveForm() {
-  // Generate default session name (current date and time)
   const now = new Date();
   const defaultName = `Session ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
-
-  // Set default name and show form
   sessionNameInput.value = defaultName;
   saveSessionForm.classList.remove("hidden");
   saveCurrentTabsBtn.classList.add("hidden");
-
-  // Focus the input field
   sessionNameInput.focus();
   sessionNameInput.select();
 }
@@ -95,22 +129,35 @@ async function saveCurrentSession() {
     sessionNameInput.value.trim() || `Session ${new Date().toLocaleString()}`;
 
   try {
-    // Show loading state
     confirmSaveBtn.textContent = "Saving...";
     confirmSaveBtn.disabled = true;
 
-    // Get all tabs in current window
     const tabs = await chrome.tabs.query({ currentWindow: true });
-
-    // Get tab groups if available
     let tabGroups = [];
     if (chrome.tabGroups) {
-      tabGroups = await chrome.tabGroups.query({
-        windowId: chrome.windows.WINDOW_ID_CURRENT,
-      });
+      try {
+        // Check if the current window ID is valid. Sometimes it can be -1 if the window is not focused.
+        const currentWindow = await chrome.windows.getCurrent();
+        if (
+          currentWindow &&
+          currentWindow.id !== chrome.windows.WINDOW_ID_NONE
+        ) {
+          tabGroups = await chrome.tabGroups.query({
+            windowId: currentWindow.id,
+          });
+        } else {
+          console.warn(
+            "Could not get current window ID for tab groups, saving without group info."
+          );
+        }
+      } catch (e) {
+        console.warn(
+          "Error querying tab groups, possibly not supported or no groups exist:",
+          e
+        );
+      }
     }
 
-    // Create session object
     const session = {
       id: Date.now().toString(),
       name: sessionName,
@@ -118,35 +165,33 @@ async function saveCurrentSession() {
       updatedAt: new Date().toISOString(),
       notes: "",
       tabs: tabs.map((tab) => ({
-        id: tab.id.toString(),
+        id: tab.id.toString(), // Store original tab ID for reference, but it won't be the same on restore
         url: tab.url,
         title: tab.title,
+        pinned: tab.pinned, // Save pinned state
+        active: tab.active, // Save active state (though usually one tab is active on restore)
         favicon: tab.favIconUrl,
         groupId:
-          tab.groupId && tab.groupId !== -1 ? tab.groupId.toString() : null,
+          tab.groupId && tab.groupId !== chrome.tabs.TAB_ID_NONE
+            ? tab.groupId.toString()
+            : null,
       })),
       tabGroups: tabGroups.map((group) => ({
-        id: group.id.toString(),
-        name: group.title || "",
+        id: group.id.toString(), // Store original group ID for reference
+        title: group.title || "", // Use 'title' as per API
         color: group.color || "grey",
-        tabs: tabs
-          .filter((tab) => tab.groupId === group.id)
-          .map((tab) => tab.id.toString()),
+        collapsed: group.collapsed, // Save collapsed state
+        // 'tabs' array in tabGroups is not needed here as we link tabs to groups via tab.groupId
       })),
     };
 
-    // Save to storage
-    await saveSession(session);
-
-    // Reset UI
+    await saveSessionToStorage(session); // Renamed to avoid conflict
     hideSaveForm();
     loadSavedSessions();
-
-    // Show success message
     showNotification("Session saved successfully!");
   } catch (error) {
     console.error("Error saving session:", error);
-    showNotification("Error saving session", true);
+    showNotification("Error saving session: " + error.message, true);
   } finally {
     confirmSaveBtn.textContent = "Save";
     confirmSaveBtn.disabled = false;
@@ -155,9 +200,8 @@ async function saveCurrentSession() {
 
 async function loadSavedSessions() {
   try {
-    const sessions = await getSavedSessions();
+    const sessions = await getSessionsFromStorage(); // Renamed
     currentSessions = sessions;
-
     renderSessions();
   } catch (error) {
     console.error("Error loading sessions:", error);
@@ -166,20 +210,30 @@ async function loadSavedSessions() {
 }
 
 function renderSessions() {
+  if (!sessionsContainer) {
+    console.error("sessionsContainer is not found!");
+    return;
+  }
   if (currentSessions.length === 0) {
     sessionsContainer.innerHTML = `
       <div class="empty-state">
         <p>No saved sessions yet</p>
-        <button id="createFirstSessionBtn" class="btn primary">Save Your First Session</button>
+        <button id="createFirstSessionBtnDynamic" class="btn primary">Save Your First Session</button>
       </div>
     `;
-    document
-      .getElementById("createFirstSessionBtn")
-      .addEventListener("click", showSaveForm);
+    // Ensure the dynamically added button gets an event listener
+    const createFirstBtnDynamic = document.getElementById(
+      "createFirstSessionBtnDynamic"
+    );
+    if (createFirstBtnDynamic) {
+      createFirstBtnDynamic.addEventListener("click", showSaveForm);
+    } else if (createFirstSessionBtn) {
+      // Fallback for the static one if it exists
+      createFirstSessionBtn.addEventListener("click", showSaveForm);
+    }
     return;
   }
 
-  // Apply filters and sorting
   let filteredSessions = filterSessionsBySearch(
     currentSessions,
     searchInput.value
@@ -187,7 +241,6 @@ function renderSessions() {
   filteredSessions = filterSessionsByDate(filteredSessions, dateFilter.value);
   filteredSessions = sortSessionsBy(filteredSessions, sortFilter.value);
 
-  // Generate HTML based on view mode
   if (viewMode === "grid") {
     sessionsContainer.className = "sessions-grid";
     sessionsContainer.innerHTML = filteredSessions
@@ -200,20 +253,30 @@ function renderSessions() {
       .join("");
   }
 
-  // Add event listeners to session cards/items
   document
     .querySelectorAll(".session-card, .session-list-item")
     .forEach((element) => {
-      element.addEventListener("click", () =>
-        showSessionDetail(element.dataset.id)
-      );
+      element.addEventListener("click", (e) => {
+        // Prevent triggering if a button inside was clicked
+        if (e.target.closest("button")) return;
+        showSessionDetail(element.dataset.id);
+      });
     });
 
-  // Add event listeners to action buttons
   document.querySelectorAll(".restore-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      restoreSession(e.target.dataset.id, false);
+      const sessionId = e.target.dataset.id;
+      chrome.runtime.sendMessage(
+        {
+          action: "restoreSession",
+          sessionId: sessionId,
+          inNewWindow: false, // or determine this based on another button if needed
+        },
+        (response) => {
+          handleRestoreResponse(response);
+        }
+      );
     });
   });
 
@@ -228,14 +291,11 @@ function renderSessions() {
 function createSessionCard(session) {
   const date = new Date(session.createdAt).toLocaleString();
   const tabCount = session.tabs.length;
-  const groupCount = session.tabGroups.length;
+  const groupCount = session.tabGroups?.length || 0; // Ensure tabGroups exists
 
-  // Create a more organized preview that shows tab groups
   let previewContent = "";
 
-  // If there are tab groups, show them first
   if (groupCount > 0) {
-    // Group tabs by their group ID
     const tabsByGroup = {};
     session.tabs.forEach((tab) => {
       if (tab.groupId) {
@@ -246,11 +306,9 @@ function createSessionCard(session) {
       }
     });
 
-    // Create preview for each group
     session.tabGroups.forEach((group) => {
       const groupTabs = tabsByGroup[group.id] || [];
       if (groupTabs.length > 0) {
-        // Get up to 4 favicons for this group
         const groupFavicons = groupTabs
           .filter((tab) => tab.favicon)
           .slice(0, 4)
@@ -269,7 +327,7 @@ function createSessionCard(session) {
           }">
             <div class="group-preview-header">
               <span class="group-preview-name">${
-                group.name || "Unnamed group"
+                group.title || "Unnamed group" // Use 'title'
               }</span>
               <span class="group-preview-count">${groupTabs.length} tab${
           groupTabs.length !== 1 ? "s" : ""
@@ -291,12 +349,8 @@ function createSessionCard(session) {
     });
   }
 
-  // Get ungrouped tabs
   const ungroupedTabs = session.tabs.filter((tab) => !tab.groupId);
-
-  // If there are ungrouped tabs, show them after groups
   if (ungroupedTabs.length > 0) {
-    // Get up to 4 favicons for ungrouped tabs
     const ungroupedFavicons = ungroupedTabs
       .filter((tab) => tab.favicon)
       .slice(0, 4)
@@ -331,7 +385,6 @@ function createSessionCard(session) {
     `;
   }
 
-  // If no preview content was generated, show a placeholder
   if (!previewContent) {
     previewContent =
       '<div class="empty-preview">No tab preview available</div>';
@@ -371,15 +424,13 @@ function createSessionCard(session) {
 function createSessionListItem(session) {
   const date = new Date(session.createdAt).toLocaleString();
   const tabCount = session.tabs.length;
-  const groupCount = session.tabGroups.length;
+  const groupCount = session.tabGroups?.length || 0; // Ensure tabGroups exists
 
-  // Create group indicators
   let groupIndicators = "";
 
   if (groupCount > 0) {
     groupIndicators = session.tabGroups
       .map((group) => {
-        // Count tabs in this group
         const groupTabCount = session.tabs.filter(
           (tab) => tab.groupId === group.id
         ).length;
@@ -387,7 +438,7 @@ function createSessionListItem(session) {
         <div class="list-group-indicator" style="background-color: ${
           group.color
         }">
-          <span class="group-name">${group.name || "Unnamed"}</span>
+          <span class="group-name">${group.title || "Unnamed"}</span> 
           <span class="group-count">${groupTabCount}</span>
         </div>
       `;
@@ -395,7 +446,6 @@ function createSessionListItem(session) {
       .join("");
   }
 
-  // Count ungrouped tabs
   const ungroupedCount = session.tabs.filter((tab) => !tab.groupId).length;
   if (ungroupedCount > 0) {
     groupIndicators += `
@@ -449,25 +499,20 @@ function showSessionDetail(sessionId) {
 
   currentSessionId = sessionId;
 
-  // Set modal content
   modalSessionTitle.textContent = session.name;
   modalSessionDate.textContent = `Date: ${new Date(
     session.createdAt
   ).toLocaleString()}`;
 
   const tabCount = session.tabs.length;
-  const groupCount = session.tabGroups.length;
+  const groupCount = session.tabGroups?.length || 0; // Ensure tabGroups exists
   modalSessionStats.textContent = `Tabs: ${tabCount} ${
     groupCount > 0 ? `, Groups: ${groupCount}` : ""
   }`;
 
-  // Set notes content
   sessionNotes.value = session.notes || "";
-
-  // Render tabs list
   tabsList.innerHTML = "";
 
-  // Group tabs by their group
   const groupedTabs = {};
   const ungroupedTabs = [];
 
@@ -482,58 +527,50 @@ function showSessionDetail(sessionId) {
     }
   });
 
-  // Add groups first
-  session.tabGroups.forEach((group) => {
-    const groupTabs = groupedTabs[group.id] || [];
-
-    const groupElement = document.createElement("div");
-    groupElement.className = "tab-group";
-
-    // Create a more visually distinct group header
-    groupElement.innerHTML = `
-      <div class="group-header" style="background-color: ${
-        group.color
-      }20; border-left: 4px solid ${group.color}">
-        <div class="group-header-content">
-          <span class="group-name">${group.name || "Unnamed group"}</span>
-          <span class="group-count">${groupTabs.length} tab${
-      groupTabs.length !== 1 ? "s" : ""
-    }</span>
+  if (session.tabGroups) {
+    // Check if tabGroups exists
+    session.tabGroups.forEach((group) => {
+      const groupTabs = groupedTabs[group.id] || [];
+      const groupElement = document.createElement("div");
+      groupElement.className = "tab-group";
+      groupElement.innerHTML = `
+        <div class="group-header" style="background-color: ${
+          group.color
+        }20; border-left: 4px solid ${group.color}">
+          <div class="group-header-content">
+            <span class="group-name">${group.title || "Unnamed group"}</span>
+            <span class="group-count">${groupTabs.length} tab${
+        groupTabs.length !== 1 ? "s" : ""
+      }</span>
+          </div>
+          <div class="group-actions">
+            <button class="group-expand-btn" title="Expand/Collapse Group">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+          </div>
         </div>
-        <div class="group-actions">
-          <button class="group-expand-btn" title="Expand/Collapse Group">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </button>
-        </div>
-      </div>
-    `;
-
-    const tabsContainer = document.createElement("div");
-    tabsContainer.className = "group-tabs";
-
-    groupTabs.forEach((tab) => {
-      tabsContainer.innerHTML += createTabItem(tab);
+      `;
+      const tabsContainer = document.createElement("div");
+      tabsContainer.className = "group-tabs";
+      groupTabs.forEach((tab) => {
+        tabsContainer.innerHTML += createTabItem(tab);
+      });
+      groupElement.appendChild(tabsContainer);
+      tabsList.appendChild(groupElement);
+      const expandBtn = groupElement.querySelector(".group-expand-btn");
+      expandBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        tabsContainer.classList.toggle("collapsed");
+        expandBtn.classList.toggle("collapsed");
+      });
     });
+  }
 
-    groupElement.appendChild(tabsContainer);
-    tabsList.appendChild(groupElement);
-
-    // Add event listener to expand/collapse button
-    const expandBtn = groupElement.querySelector(".group-expand-btn");
-    expandBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      tabsContainer.classList.toggle("collapsed");
-      expandBtn.classList.toggle("collapsed");
-    });
-  });
-
-  // Add ungrouped tabs with a header
   if (ungroupedTabs.length > 0) {
     const ungroupedElement = document.createElement("div");
     ungroupedElement.className = "tab-group ungrouped";
-
     ungroupedElement.innerHTML = `
       <div class="group-header ungrouped">
         <div class="group-header-content">
@@ -551,18 +588,13 @@ function showSessionDetail(sessionId) {
         </div>
       </div>
     `;
-
     const tabsContainer = document.createElement("div");
     tabsContainer.className = "group-tabs";
-
     ungroupedTabs.forEach((tab) => {
       tabsContainer.innerHTML += createTabItem(tab);
     });
-
     ungroupedElement.appendChild(tabsContainer);
     tabsList.appendChild(ungroupedElement);
-
-    // Add event listener to expand/collapse button
     const expandBtn = ungroupedElement.querySelector(".group-expand-btn");
     expandBtn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -570,21 +602,17 @@ function showSessionDetail(sessionId) {
       expandBtn.classList.toggle("collapsed");
     });
   }
-
-  // Show modal
   sessionDetailModal.classList.remove("hidden");
 }
 
 function createTabItem(tab) {
-  // Extract domain from URL for better display
   let domain = "";
   try {
     const url = new URL(tab.url);
     domain = url.hostname;
   } catch (e) {
-    domain = tab.url;
+    domain = tab.url; // Fallback for invalid URLs like about:blank
   }
-
   return `
     <div class="tab-item">
       <img class="tab-favicon" src="${
@@ -596,7 +624,7 @@ function createTabItem(tab) {
       </div>
       <a href="${
         tab.url
-      }" class="tab-open-link" title="Open tab in new window" target="_blank">
+      }" class="tab-open-link" title="Open tab in new window" target="_blank" rel="noopener noreferrer">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
           <polyline points="15 3 21 3 21 9"></polyline>
@@ -612,282 +640,18 @@ function hideSessionModal() {
   currentSessionId = null;
 }
 
-async function restoreSession(sessionId, inNewWindow = false) {
-  try {
-    const session = currentSessions.find((s) => s.id === sessionId);
-
-    if (!session) {
-      throw new Error("Session not found");
-    }
-
-    // Show loading notification
-    showNotification("Restoring session...");
-
-    // Debug info
-    console.log("Session to restore:", {
-      id: session.id,
-      name: session.name,
-      totalTabs: session.tabs.length,
-      tabGroups: session.tabGroups ? session.tabGroups.length : 0,
-    });
-
-    // First, check if we have all the tabs we expect
-    console.log("All tabs in session:", session.tabs);
-
-    // Create a map to track new tab IDs
-    const tabIdMap = {};
-
-    // Create a set of tabs that have been processed
-    const processedTabs = new Set();
-
-    // Group tabs by their group ID for more efficient restoration
-    const tabsByGroup = {};
-    const ungroupedTabs = [];
-
-    // Organize tabs by their group
-    session.tabs.forEach((tab) => {
-      if (tab.groupId) {
-        if (!tabsByGroup[tab.groupId]) {
-          tabsByGroup[tab.groupId] = [];
-        }
-        tabsByGroup[tab.groupId].push(tab);
-      } else {
-        ungroupedTabs.push(tab);
-      }
-    });
-
-    // Debug tab organization
-    console.log("Tab organization:", {
-      groupedTabs: Object.keys(tabsByGroup).map((key) => ({
-        groupId: key,
-        tabCount: tabsByGroup[key].length,
-      })),
-      ungroupedTabsCount: ungroupedTabs.length,
-    });
-
-    if (inNewWindow) {
-      // Create new window (we'll use the first tab from the first group or an ungrouped tab)
-      let firstTab;
-      if (session.tabGroups && session.tabGroups.length > 0) {
-        const firstGroupId = session.tabGroups[0].id;
-        firstTab =
-          tabsByGroup[firstGroupId] && tabsByGroup[firstGroupId].length > 0
-            ? tabsByGroup[firstGroupId][0]
-            : ungroupedTabs.length > 0
-            ? ungroupedTabs[0]
-            : session.tabs[0];
-      } else {
-        firstTab =
-          ungroupedTabs.length > 0 ? ungroupedTabs[0] : session.tabs[0];
-      }
-
-      const newWindow = await chrome.windows.create({ url: firstTab.url });
-
-      // Mark the first tab as processed
-      processedTabs.add(firstTab.id);
-
-      // Get the ID of the first tab in the new window
-      const tabs = await chrome.tabs.query({ windowId: newWindow.id });
-      if (tabs.length > 0) {
-        tabIdMap[firstTab.id] = tabs[0].id;
-      }
-
-      // Process each group separately
-      if (
-        chrome.tabGroups &&
-        session.tabGroups &&
-        session.tabGroups.length > 0
-      ) {
-        for (const group of session.tabGroups) {
-          const groupTabs = tabsByGroup[group.id] || [];
-          console.log(
-            `Processing group ${group.name} with ${groupTabs.length} tabs`
-          );
-
-          // Skip the first tab of the first group as it's already opened
-          const tabsToOpen =
-            group.id === session.tabGroups[0].id && groupTabs.length > 0
-              ? groupTabs.slice(1)
-              : groupTabs;
-
-          if (tabsToOpen.length > 0) {
-            // Open all tabs for this group
-            const newTabIds = [];
-
-            // Add the first tab ID if it belongs to this group
-            if (group.id === session.tabGroups[0].id && groupTabs.length > 0) {
-              newTabIds.push(tabIdMap[firstTab.id]);
-            }
-
-            // Open remaining tabs in the group
-            for (const tab of tabsToOpen) {
-              const newTab = await chrome.tabs.create({
-                windowId: newWindow.id,
-                url: tab.url,
-              });
-              tabIdMap[tab.id] = newTab.id;
-              newTabIds.push(newTab.id);
-              processedTabs.add(tab.id);
-            }
-
-            // Wait a moment for tabs to load
-            await new Promise((resolve) => setTimeout(resolve, 300));
-
-            // Create a group with these tabs
-            if (newTabIds.length > 0) {
-              const groupId = await chrome.tabs.group({
-                tabIds: newTabIds,
-                windowId: newWindow.id,
-              });
-
-              // Set the group's name and color
-              if (groupId) {
-                await chrome.tabGroups.update(groupId, {
-                  title: group.name,
-                  color: group.color,
-                });
-              }
-            }
-          }
-        }
-      }
-
-      // Process ungrouped tabs separately (except for the first tab which was already opened)
-      console.log(
-        `Restoring ${ungroupedTabs.length} ungrouped tabs in new window`
-      );
-      for (const tab of ungroupedTabs) {
-        // Skip if this tab was somehow already processed (like the first tab)
-        if (processedTabs.has(tab.id)) {
-          console.log(`Skipping already processed tab: ${tab.title}`);
-          continue;
-        }
-
-        console.log(
-          `Restoring ungrouped tab in new window: ${tab.title} (${tab.url})`
-        );
-        const newTab = await chrome.tabs.create({
-          windowId: newWindow.id,
-          url: tab.url,
-        });
-        tabIdMap[tab.id] = newTab.id;
-        processedTabs.add(tab.id);
-      }
-
-      // Find any tabs that weren't in groups or weren't processed yet (as a safety net)
-      const remainingTabs = session.tabs.filter(
-        (tab) => !processedTabs.has(tab.id)
-      );
-      console.log(
-        `Found ${remainingTabs.length} remaining tabs to restore in new window`
-      );
-
-      // Restore any remaining tabs (this should be 0 if the above logic works correctly)
-      if (remainingTabs.length > 0) {
-        for (const tab of remainingTabs) {
-          console.log(
-            `Restoring remaining tab in new window: ${tab.title} (${tab.url})`
-          );
-          const newTab = await chrome.tabs.create({
-            windowId: newWindow.id,
-            url: tab.url,
-          });
-          tabIdMap[tab.id] = newTab.id;
-        }
-      }
-    } else {
-      // Open in current window
-
-      // Process each group separately if there are any
-      if (
-        chrome.tabGroups &&
-        session.tabGroups &&
-        session.tabGroups.length > 0
-      ) {
-        for (const group of session.tabGroups) {
-          const groupTabs = tabsByGroup[group.id] || [];
-          console.log(
-            `Processing group ${group.name} with ${groupTabs.length} tabs`
-          );
-
-          if (groupTabs.length > 0) {
-            // Open all tabs for this group
-            const newTabIds = [];
-
-            for (const tab of groupTabs) {
-              const newTab = await chrome.tabs.create({ url: tab.url });
-              tabIdMap[tab.id] = newTab.id;
-              newTabIds.push(newTab.id);
-              processedTabs.add(tab.id);
-            }
-
-            // Wait a moment for tabs to load
-            await new Promise((resolve) => setTimeout(resolve, 300));
-
-            // Create a group with these tabs
-            if (newTabIds.length > 0) {
-              const groupId = await chrome.tabs.group({ tabIds: newTabIds });
-
-              // Set the group's name and color
-              if (groupId) {
-                await chrome.tabGroups.update(groupId, {
-                  title: group.name,
-                  color: group.color,
-                });
-              }
-            }
-          }
-        }
-      }
-
-      // Process ungrouped tabs separately to ensure they're always restored
-      console.log(
-        `Restoring ${ungroupedTabs.length} ungrouped tabs in current window`
-      );
-      for (const tab of ungroupedTabs) {
-        // Skip if this tab was somehow already processed (shouldn't happen for ungrouped tabs)
-        if (processedTabs.has(tab.id)) {
-          console.log(`Skipping already processed tab: ${tab.title}`);
-          continue;
-        }
-
-        console.log(`Restoring ungrouped tab: ${tab.title} (${tab.url})`);
-        const newTab = await chrome.tabs.create({ url: tab.url });
-        tabIdMap[tab.id] = newTab.id;
-        processedTabs.add(tab.id);
-      }
-
-      // Find any tabs that weren't in groups or weren't processed yet (as a safety net)
-      const remainingTabs = session.tabs.filter(
-        (tab) => !processedTabs.has(tab.id)
-      );
-      console.log(
-        `Found ${remainingTabs.length} remaining tabs to restore in current window`
-      );
-
-      // Restore any remaining tabs (this should be 0 if the above logic works correctly)
-      if (remainingTabs.length > 0) {
-        for (const tab of remainingTabs) {
-          console.log(`Restoring remaining tab: ${tab.title} (${tab.url})`);
-          const newTab = await chrome.tabs.create({ url: tab.url });
-          tabIdMap[tab.id] = newTab.id;
-        }
-      }
-    }
-
-    showNotification("Session restored successfully!");
-  } catch (error) {
-    console.error("Error restoring session:", error);
-    showNotification("Error restoring session", true);
-  }
-}
+// ** REMOVE restoreSession function from dashboard.js **
+// The restoreSession logic will now live in background.js
 
 async function deleteSession(sessionId) {
   try {
-    currentSessions = currentSessions.filter(
-      (session) => session.id !== sessionId
-    );
-    await chrome.storage.local.set({ sessions: currentSessions });
+    // Fetch current sessions first to ensure we have the latest
+    let sessions = await getSessionsFromStorage();
+    sessions = sessions.filter((session) => session.id !== sessionId);
+    await chrome.storage.local.set({ sessions: sessions });
+
+    // Update local state and re-render
+    currentSessions = sessions;
     renderSessions();
     showNotification("Session deleted");
   } catch (error) {
@@ -898,7 +662,6 @@ async function deleteSession(sessionId) {
 
 function setViewMode(mode) {
   viewMode = mode;
-
   if (mode === "grid") {
     gridViewBtn.classList.add("active");
     listViewBtn.classList.remove("active");
@@ -906,7 +669,6 @@ function setViewMode(mode) {
     gridViewBtn.classList.remove("active");
     listViewBtn.classList.add("active");
   }
-
   renderSessions();
 }
 
@@ -920,13 +682,9 @@ function sortSessions() {
 
 function filterSessionsBySearch(sessions, searchTerm) {
   if (!searchTerm) return sessions;
-
   searchTerm = searchTerm.toLowerCase();
   return sessions.filter((session) => {
-    // Search in session name
     if (session.name.toLowerCase().includes(searchTerm)) return true;
-
-    // Search in tab titles and URLs
     return session.tabs.some(
       (tab) =>
         (tab.title && tab.title.toLowerCase().includes(searchTerm)) ||
@@ -935,19 +693,19 @@ function filterSessionsBySearch(sessions, searchTerm) {
   });
 }
 
-function filterSessionsByDate(sessions, dateFilter) {
-  if (dateFilter === "all") return sessions;
-
+function filterSessionsByDate(sessions, dateFilterValue) {
+  if (dateFilterValue === "all") return sessions;
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const weekStart = new Date(today);
-  weekStart.setDate(today.getDate() - today.getDay());
+  weekStart.setDate(
+    today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1)
+  ); // Adjust for week start (Mon)
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   return sessions.filter((session) => {
     const sessionDate = new Date(session.createdAt);
-
-    switch (dateFilter) {
+    switch (dateFilterValue) {
       case "today":
         return sessionDate >= today;
       case "week":
@@ -973,7 +731,9 @@ function sortSessionsBy(sessions, sortBy) {
     case "name":
       return [...sessions].sort((a, b) => a.name.localeCompare(b.name));
     case "tabs":
-      return [...sessions].sort((a, b) => b.tabs.length - a.tabs.length);
+      return [...sessions].sort(
+        (a, b) => (b.tabs?.length || 0) - (a.tabs?.length || 0)
+      );
     default:
       return sessions;
   }
@@ -981,44 +741,39 @@ function sortSessionsBy(sessions, sortBy) {
 
 function exportData() {
   try {
-    // Get all sessions
     chrome.storage.local.get("sessions", (data) => {
-      if (!data.sessions || data.sessions.length === 0) {
-        showNotification("No sessions to export", true);
+      if (chrome.runtime.lastError) {
+        console.error(
+          "Error fetching sessions for export:",
+          chrome.runtime.lastError
+        );
+        showNotification("Error fetching sessions for export", true);
         return;
       }
-
-      // Create export object with metadata
-      const exportData = {
-        version: "1.0",
+      if (!data.sessions || data.sessions.length === 0) {
+        showNotification("No sessions to export");
+        return;
+      }
+      const exportObject = {
+        type: "TabNestSessionExport",
+        version: "1.1", // Increment version if format changes
         exportDate: new Date().toISOString(),
         sessions: data.sessions,
       };
-
-      // Convert to JSON string
-      const jsonString = JSON.stringify(exportData, null, 2);
-
-      // Create blob and download link
+      const jsonString = JSON.stringify(exportObject, null, 2);
       const blob = new Blob([jsonString], { type: "application/json" });
       const url = URL.createObjectURL(blob);
-
-      // Create download link
       const downloadLink = document.createElement("a");
       downloadLink.href = url;
       downloadLink.download = `tabnest-export-${new Date()
         .toISOString()
         .slice(0, 10)}.json`;
-
-      // Trigger download
       document.body.appendChild(downloadLink);
       downloadLink.click();
-
-      // Clean up
       setTimeout(() => {
         document.body.removeChild(downloadLink);
         URL.revokeObjectURL(url);
       }, 100);
-
       showNotification("Sessions exported successfully");
     });
   } catch (error) {
@@ -1029,108 +784,103 @@ function exportData() {
 
 function importData() {
   try {
-    // Create file input element
     const fileInput = document.createElement("input");
     fileInput.type = "file";
     fileInput.accept = ".json";
-
-    // Handle file selection
     fileInput.addEventListener("change", (event) => {
       const file = event.target.files[0];
       if (!file) return;
-
       const reader = new FileReader();
-
       reader.onload = async (e) => {
         try {
-          // Parse JSON
-          const importData = JSON.parse(e.target.result);
-
-          // Validate import data
-          if (!importData.sessions || !Array.isArray(importData.sessions)) {
-            throw new Error("Invalid import file format");
+          const importedData = JSON.parse(e.target.result);
+          if (
+            importedData.type !== "TabNestSessionExport" ||
+            !importedData.sessions ||
+            !Array.isArray(importedData.sessions)
+          ) {
+            throw new Error("Invalid import file format or type.");
           }
 
-          // Get current sessions
-          const data = await chrome.storage.local.get("sessions");
-          const currentSessions = data.sessions || [];
+          // Validate sessions structure (basic check)
+          importedData.sessions.forEach((s) => {
+            if (!s.id || !s.name || !s.tabs)
+              throw new Error("Imported session missing required fields.");
+          });
 
-          // Confirm import if there are existing sessions
-          let shouldImport = true;
-          if (currentSessions.length > 0) {
-            shouldImport = confirm(
-              `You have ${currentSessions.length} existing session(s). Do you want to:\n\n` +
-                "- Click OK to add imported sessions to your existing ones\n" +
-                "- Click Cancel to replace all existing sessions with imported ones"
+          const data = await chrome.storage.local.get("sessions");
+          let existingSessions = data.sessions || [];
+
+          let newSessions;
+          const importedSessionCount = importedData.sessions.length;
+
+          if (existingSessions.length > 0) {
+            if (
+              confirm(
+                `You have ${existingSessions.length} existing session(s). \n\nOK to MERGE (add ${importedSessionCount} new sessions, skipping duplicates by ID)? \nCancel to REPLACE all existing sessions with the imported ones?`
+              )
+            ) {
+              // Merge: Add new, skip existing by ID
+              const existingIds = new Set(existingSessions.map((s) => s.id));
+              const sessionsToAdd = importedData.sessions.filter(
+                (s) => !existingIds.has(s.id)
+              );
+              newSessions = [...existingSessions, ...sessionsToAdd];
+              showNotification(
+                `Merged sessions. Added ${sessionsToAdd.length} new session(s).`,
+                false
+              );
+            } else {
+              // Replace
+              newSessions = importedData.sessions;
+              showNotification(
+                `Replaced all sessions with ${importedSessionCount} imported session(s).`,
+                false
+              );
+            }
+          } else {
+            // No existing sessions, just import
+            newSessions = importedData.sessions;
+            showNotification(
+              `Successfully imported ${importedSessionCount} session(s).`,
+              false
             );
           }
 
-          // Prepare new sessions array
-          let newSessions;
-          if (shouldImport) {
-            // Add imported sessions to existing ones
-            newSessions = [...currentSessions, ...importData.sessions];
-          } else {
-            // Replace existing sessions
-            newSessions = importData.sessions;
-          }
-
-          // Save to storage
           await chrome.storage.local.set({ sessions: newSessions });
-
-          // Reload sessions in UI
-          loadSavedSessions();
-
-          showNotification(
-            `Successfully imported ${importData.sessions.length} session(s)`
-          );
+          loadSavedSessions(); // Reload and render
         } catch (error) {
-          console.error("Error parsing import file:", error);
-          showNotification("Error importing: Invalid file format", true);
+          console.error("Error parsing or processing import file:", error);
+          showNotification(`Error importing: ${error.message}`, true);
         }
       };
-
       reader.onerror = () => {
         showNotification("Error reading import file", true);
       };
-
       reader.readAsText(file);
     });
-
-    // Trigger file selection
     document.body.appendChild(fileInput);
     fileInput.click();
-
-    // Clean up
     setTimeout(() => {
       document.body.removeChild(fileInput);
     }, 100);
   } catch (error) {
-    console.error("Error importing data:", error);
-    showNotification("Error importing data", true);
+    console.error("Error initiating import:", error);
+    showNotification("Error initiating import", true);
   }
 }
 
 async function saveSessionNotes() {
   if (!currentSessionId) return;
-
   try {
-    // Find the session
     const sessionIndex = currentSessions.findIndex(
       (s) => s.id === currentSessionId
     );
-    if (sessionIndex === -1) {
-      throw new Error("Session not found");
-    }
-
-    // Update the notes
-    const notes = sessionNotes.value.trim();
+    if (sessionIndex === -1) throw new Error("Session not found");
+    const notes = sessionNotes.value; // Don't trim, user might want leading/trailing spaces
     currentSessions[sessionIndex].notes = notes;
     currentSessions[sessionIndex].updatedAt = new Date().toISOString();
-
-    // Save to storage
     await chrome.storage.local.set({ sessions: currentSessions });
-
     showNotification("Notes saved successfully!");
   } catch (error) {
     console.error("Error saving notes:", error);
@@ -1139,45 +889,65 @@ async function saveSessionNotes() {
 }
 
 function openSettings() {
-  // TODO: Implement settings page
-  alert("Settings page will be implemented in a future version");
+  if (chrome.runtime.openOptionsPage) {
+    chrome.runtime.openOptionsPage();
+  } else {
+    window.open(chrome.runtime.getURL("options.html"));
+  }
 }
 
-// Storage helpers
-async function getSavedSessions() {
+// Storage helpers (renamed to avoid conflict if background.js has same names)
+async function getSessionsFromStorage() {
   const data = await chrome.storage.local.get("sessions");
   return data.sessions || [];
 }
 
-async function saveSession(session) {
-  const sessions = await getSavedSessions();
+async function saveSessionToStorage(session) {
+  // Renamed
+  const sessions = await getSessionsFromStorage();
+  // Check for duplicate ID, though unlikely with Date.now()
+  if (sessions.find((s) => s.id === session.id)) {
+    console.warn("Attempted to save session with duplicate ID:", session.id);
+    session.id = Date.now().toString() + "_dup"; // Simple fix
+  }
   sessions.push(session);
   await chrome.storage.local.set({ sessions });
 }
 
 // UI helpers
 function showNotification(message, isError = false) {
-  // Create notification element
   const notification = document.createElement("div");
   notification.className = `notification ${isError ? "error" : "success"}`;
   notification.textContent = message;
+  // Simple styling, ideally use CSS classes defined in your stylesheet
   notification.style.position = "fixed";
   notification.style.bottom = "20px";
   notification.style.right = "20px";
-  notification.style.padding = "10px 15px";
-  notification.style.borderRadius = "4px";
-  notification.style.backgroundColor = isError ? "#ea4335" : "#34a853";
+  notification.style.padding = "12px 20px";
+  notification.style.borderRadius = "5px";
+  notification.style.backgroundColor = isError ? "#f44336" : "#4CAF50"; // Red for error, Green for success
   notification.style.color = "white";
-  notification.style.boxShadow = "0 2px 10px rgba(0, 0, 0, 0.2)";
-  notification.style.zIndex = "9999";
+  notification.style.boxShadow = "0 2px 10px rgba(0,0,0,0.2)";
+  notification.style.zIndex = "10000";
+  notification.style.opacity = "0";
+  notification.style.transition = "opacity 0.3s ease-in-out";
 
-  // Add to DOM
   document.body.appendChild(notification);
 
-  // Remove after delay
-  setTimeout(() => {
-    notification.style.opacity = "0";
-    notification.style.transition = "opacity 0.3s";
-    setTimeout(() => notification.remove(), 300);
-  }, 3000);
+  // Fade in
+  requestAnimationFrame(() => {
+    notification.style.opacity = "1";
+  });
+
+  setTimeout(
+    () => {
+      notification.style.opacity = "0";
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 300); // Wait for fade out transition
+    },
+    isError ? 5000 : 3000
+  ); // Longer display for errors
 }
