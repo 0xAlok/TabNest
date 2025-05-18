@@ -29,6 +29,19 @@ document.addEventListener("DOMContentLoaded", () => {
       window.close(); // Close the popup
     });
   }
+
+  const settingsLinkPopup = document.getElementById("settingsLinkPopup");
+  if (settingsLinkPopup) {
+    settingsLinkPopup.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (chrome.runtime.openOptionsPage) {
+        chrome.runtime.openOptionsPage();
+      } else {
+        window.open(chrome.runtime.getURL("options.html"));
+      }
+      window.close(); // Close popup after opening options
+    });
+  }
 });
 
 function handleRestoreResponse(response) {
@@ -199,7 +212,6 @@ async function loadSavedSessions() {
           {
             action: "restoreSession",
             sessionId: sessionId,
-            inNewWindow: false, // Popups usually restore in the current window
           },
           (response) => {
             handleRestoreResponse(response);

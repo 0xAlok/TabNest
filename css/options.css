@@ -1,0 +1,141 @@
+/* css/options.css */
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f4f7f6;
+  color: #333;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start; /* Align to top for longer content */
+  min-height: 100vh;
+  padding-top: 20px; /* Add some top padding */
+  box-sizing: border-box;
+}
+
+.container {
+  background-color: #fff;
+  padding: 20px 30px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 600px;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 25px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 15px;
+}
+
+header h1 {
+  color: #2c3e50;
+  margin: 0;
+}
+
+main section {
+  margin-bottom: 30px;
+}
+
+main h2 {
+  font-size: 1.3em;
+  color: #34495e;
+  margin-top: 0;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 8px;
+}
+
+.setting-item {
+  margin-bottom: 20px;
+  padding: 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+}
+
+.setting-item label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+  color: #555;
+}
+
+.setting-item input[type="checkbox"] {
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.setting-item select,
+.setting-item input[type="text"] /* For future text inputs */ {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 0.95em;
+}
+
+.setting-description {
+  font-size: 0.85em;
+  color: #777;
+  margin-top: 8px;
+  line-height: 1.4;
+}
+
+.actions {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1em;
+  transition: background-color 0.2s ease;
+}
+
+.btn.primary {
+  background-color: #3498db; /* A common primary color */
+  color: white;
+}
+
+.btn.primary:hover {
+  background-color: #2980b9;
+}
+
+.status-message {
+  text-align: center;
+  margin-top: 15px;
+  padding: 10px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.status-message.success {
+  background-color: #e8f5e9; /* Light green */
+  color: #2e7d32; /* Dark green */
+  border: 1px solid #a5d6a7;
+}
+
+.status-message.error {
+  background-color: #ffebee; /* Light red */
+  color: #c62828; /* Dark red */
+  border: 1px solid #ef9a9a;
+}
+
+.hidden {
+  display: none;
+}
+
+footer {
+  text-align: center;
+  margin-top: 30px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+  font-size: 0.9em;
+  color: #888;
+}

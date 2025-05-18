@@ -271,7 +271,6 @@ function renderSessions() {
         {
           action: "restoreSession",
           sessionId: sessionId,
-          inNewWindow: false, // or determine this based on another button if needed
         },
         (response) => {
           handleRestoreResponse(response);

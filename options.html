@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TabNest Settings</title>
+    <link rel="stylesheet" href="css/options.css" />
+    <!-- We'll create this next -->
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>TabNest Settings</h1>
+      </header>
+
+      <main>
+        <section id="restoreSettings">
+          <h2>Session Restoration</h2>
+          <div class="setting-item">
+            <label for="defaultRestoreBehavior"
+              >Default action for quick restore (e.g., from popup):</label
+            >
+            <select id="defaultRestoreBehavior">
+              <option value="currentWindow">Restore in Current Window</option>
+              <option value="newWindow">Restore in New Window</option>
+            </select>
+            <p class="setting-description">
+              This sets the default behavior when restoring a session with a
+              single click, like from the popup list. The dashboard provides
+              explicit buttons for current/new window.
+            </p>
+          </div>
+
+          <div class="setting-item">
+            <label for="autoCollapseGroups">
+              <input type="checkbox" id="autoCollapseGroups" />
+              Automatically collapse restored tab groups
+            </label>
+            <p class="setting-description">
+              When enabled, tab groups will be restored in a collapsed state.
+            </p>
+          </div>
+        </section>
+
+        <!-- Add more sections for future settings here -->
+
+        <div class="actions">
+          <button id="saveSettingsBtn" class="btn primary">
+            Save Settings
+          </button>
+        </div>
+        <div id="statusMessage" class="status-message hidden"></div>
+      </main>
+
+      <footer>
+        <p>TabNest - Your Tab Companion</p>
+      </footer>
+    </div>
+
+    <script src="js/options.js"></script>
+  </body>
+</html>

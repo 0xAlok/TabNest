@@ -1,6 +1,13 @@
 // background.js (or service-worker.js if MV3)
 
-// Storage helper (can be shared or duplicated from dashboard.js if complex)
+const SETTINGS_KEY = "tabNestUserSettings"; // Same key as in options.js
+const defaultSettings = {
+  // Same defaults as in options.js
+  defaultRestoreBehavior: "currentWindow",
+  autoCollapseGroups: false,
+};
+
+// Storage helper
 async function getSavedSessionsFromStorage() {
   try {
     const data = await chrome.storage.local.get("sessions");
@@ -14,8 +21,25 @@ async function getSavedSessionsFromStorage() {
 // Utility to introduce a small delay
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function restoreSessionInWorker(sessionId, inNewWindow = false) {
+// Function to get user settings
+async function getUserSettings() {
   try {
+    const result = await chrome.storage.local.get(SETTINGS_KEY);
+    // Merge with defaults to ensure all settings are present
+    return { ...defaultSettings, ...(result[SETTINGS_KEY] || {}) };
+  } catch (error) {
+    console.error("Background: Error fetching user settings:", error);
+    return { ...defaultSettings }; // Fallback to defaults on error
+  }
+}
+
+async function restoreSessionInWorker(sessionId, inNewWindowFromMessage) {
+  // Renamed param for clarity
+  try {
+    // --- FETCH USER SETTINGS AT THE START ---
+    const userSettings = await getUserSettings();
+    // --- END FETCH ---
+
     const allSessions = await getSavedSessionsFromStorage();
     const session = allSessions.find((s) => s.id === sessionId);
 
@@ -24,15 +48,35 @@ async function restoreSessionInWorker(sessionId, inNewWindow = false) {
       return { success: false, error: "Session not found" };
     }
 
-    console.log(`Background: Restoring session "${session.name}"`, session);
+    console.log(
+      `Background: Restoring session "${session.name}" with settings:`,
+      userSettings,
+      `Explicit new window: ${inNewWindowFromMessage}`
+    );
 
     const newTabIdMap = new Map();
     const newGroupIdMap = new Map();
 
+    // Determine if we should open in a new window
+    // The 'inNewWindowFromMessage' (from UI button) takes precedence.
+    // If it's not explicitly set (e.g., could be undefined if called from a context without explicit choice),
+    // then use the user's default setting.
+    let shouldOpenInNewWindow;
+    if (typeof inNewWindowFromMessage === "boolean") {
+      shouldOpenInNewWindow = inNewWindowFromMessage;
+    } else {
+      shouldOpenInNewWindow =
+        userSettings.defaultRestoreBehavior === "newWindow";
+    }
+    console.log(
+      `Background: Determined shouldOpenInNewWindow: ${shouldOpenInNewWindow}`
+    );
+
     let targetWindowId = chrome.windows.WINDOW_ID_CURRENT;
     let firstTabCreated = false;
 
-    if (inNewWindow) {
+    if (shouldOpenInNewWindow) {
+      // Use the determined value
       const firstUrlToOpen =
         session.tabs.length > 0 ? session.tabs[0].url : undefined;
       const newWindow = await chrome.windows.create({
@@ -51,14 +95,10 @@ async function restoreSessionInWorker(sessionId, inNewWindow = false) {
     for (let i = 0; i < session.tabs.length; i++) {
       const tabData = session.tabs[i];
 
-      if (inNewWindow && i === 0 && firstTabCreated) {
-        // If tab belongs to a group, collect its new ID for grouping later
-        // (This part was a bit complex before, simplifying the thought process here)
-        // The main collection of tabs for groups happens below after newTab is created.
+      if (shouldOpenInNewWindow && i === 0 && firstTabCreated) {
         console.log(
           `Background: First tab for new window already created: ${tabData.url}`
         );
-        // We still need to add this tab to the `tabsToCreateInGroups` map if it belongs to one
         if (tabData.groupId && session.tabGroups) {
           const originalGroupData = session.tabGroups.find(
             (g) => g.id.toString() === tabData.groupId.toString()
@@ -68,10 +108,11 @@ async function restoreSessionInWorker(sessionId, inNewWindow = false) {
             if (!tabsToCreateInGroups.has(originalGroupIdStr)) {
               tabsToCreateInGroups.set(originalGroupIdStr, []);
             }
-            // Add the ID of the already created first tab
-            tabsToCreateInGroups
-              .get(originalGroupIdStr)
-              .push(newTabIdMap.get(tabData.id.toString()));
+            const firstTabNewId = newTabIdMap.get(tabData.id.toString());
+            if (firstTabNewId) {
+              // Ensure the ID was actually found
+              tabsToCreateInGroups.get(originalGroupIdStr).push(firstTabNewId);
+            }
           }
         }
         continue;
@@ -112,7 +153,6 @@ async function restoreSessionInWorker(sessionId, inNewWindow = false) {
       }
     }
 
-    // Now, group the collected tabs
     if (
       chrome.tabGroups &&
       session.tabGroups &&
@@ -128,29 +168,53 @@ async function restoreSessionInWorker(sessionId, inNewWindow = false) {
               `Background: Grouping tabs for original group ${originalGroupIdStr}:`,
               newTabIdsForGroup
             );
-            // --- APPLY THE FIX HERE ---
             const newGroupId = await chrome.tabs.group({
               tabIds: newTabIdsForGroup,
-              createProperties: { windowId: targetWindowId }, // Correct for MV3
+              createProperties: { windowId: targetWindowId },
             });
-            // --------------------------
             newGroupIdMap.set(originalGroupIdStr, newGroupId);
             console.log(
               `Background: Created new group ID ${newGroupId} for original ${originalGroupIdStr}`
             );
             await delay(200);
 
-            await chrome.tabGroups.update(newGroupId, {
+            // --- USE USER SETTING FOR COLLAPSED STATE ---
+            let collapsedState = userSettings.autoCollapseGroups;
+            // If the original group had a collapsed state saved, prefer that,
+            // unless the user setting is to always collapse (or always expand, if you add such a setting).
+            // For now, let's keep it simple: user setting for autoCollapse takes precedence if true.
+            // If originalGroupData.collapsed is undefined, it will default to browser's behavior (usually expanded).
+            // So if user wants auto-collapse, we set it. If not, we use the saved state or browser default.
+
+            // More robust: Use saved state unless user preference overrides to always collapse/expand
+            // For this ticket, we're implementing "auto-collapse"
+            // If the original session had a specific collapsed state, we should respect it UNLESS the user setting overrides it.
+            // However, your current `originalGroupData` (from save) *does* save a `collapsed` state.
+            // Let's assume: if `autoCollapseGroups` is true, all groups are collapsed.
+            // If `autoCollapseGroups` is false, use the `originalGroupData.collapsed` value.
+
+            const groupUpdateProperties = {
               title: originalGroupData.title,
               color: originalGroupData.color,
-              collapsed: originalGroupData.collapsed,
-            });
+              collapsed: userSettings.autoCollapseGroups
+                ? true
+                : originalGroupData.collapsed,
+              // If autoCollapse is true, collapse it.
+              // Otherwise, use the collapsed state saved with the session.
+            };
+            console.log(
+              "Background: Group update properties:",
+              groupUpdateProperties
+            );
+
+            await chrome.tabGroups.update(newGroupId, groupUpdateProperties);
+            // --- END USE ---
+
             console.log(
               `Background: Updated group ${newGroupId} with title "${originalGroupData.title}" and color ${originalGroupData.color}`
             );
             await delay(100);
           } catch (e) {
-            // The error message you're seeing comes from this catch block
             console.error(
               `Background: Failed to group tabs or update group for original group ${originalGroupIdStr}:`,
               e
@@ -171,16 +235,16 @@ async function restoreSessionInWorker(sessionId, inNewWindow = false) {
   }
 }
 
+// Message listener remains the same, but the parameter name to restoreSessionInWorker was clarified
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "restoreSession") {
     console.log("Background: Received restoreSession request", request);
-    // Ensure you return true to indicate an asynchronous response
+    // 'request.inNewWindow' comes from the UI (popup.js or dashboard.js)
     restoreSessionInWorker(request.sessionId, request.inNewWindow)
       .then((response) => {
         sendResponse(response);
       })
       .catch((error) => {
-        // This catch is for errors in the promise chain of restoreSessionInWorker itself
         console.error(
           "Background: Critical error in restoreSessionInWorker promise chain:",
           error
@@ -190,17 +254,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           error: error.message || "Critical background error",
         });
       });
-    return true; // Crucial for asynchronous sendResponse
+    return true;
   }
-  // Handle other actions if any
 });
 
-// Example: Log when the extension is installed or updated
+// onInstalled listener remains the same
 chrome.runtime.onInstalled.addListener((details) => {
   console.log("TabNest extension installed or updated:", details);
   if (details.reason === "install") {
-    // Perform initial setup, e.g., set default settings
-    chrome.storage.local.set({ sessions: [] });
-    console.log("Initialized empty sessions array in storage.");
+    chrome.storage.local.set({ sessions: [] }); // Initialize sessions
+    // Initialize default settings if they don't exist
+    chrome.storage.local.get(SETTINGS_KEY, (result) => {
+      if (!result[SETTINGS_KEY]) {
+        chrome.storage.local.set({ [SETTINGS_KEY]: defaultSettings });
+        console.log("Initialized default user settings.");
+      }
+    });
   }
 });

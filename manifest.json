@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TabNest - Tab Saver",
-  "version": "0.5.0",
+  "version": "0.8.0",
   "description": "Save and restore your browser tab sessions easily.",
   "permissions": ["storage", "tabs", "tabGroups"],
   "background": {
@@ -17,7 +17,7 @@
     }
   },
   "options_ui": {
-    "page": "dashboard.html",
+    "page": "options.html",
     "open_in_tab": true
   },
   "icons": {
