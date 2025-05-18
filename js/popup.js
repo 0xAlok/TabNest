@@ -154,7 +154,7 @@ async function loadSavedSessions() {
       return;
     }
 
-    if (sessions.length === 0) {
+    if (!sessions || sessions.length === 0) {
       sessionsList.innerHTML =
         '<div class="empty-state">No saved sessions yet.</div>';
       return;
@@ -165,37 +165,46 @@ async function loadSavedSessions() {
     // Display only a few recent sessions in the popup, e.g., latest 5
     const recentSessions = sessions.slice(0, 5);
 
+    if (recentSessions.length === 0) {
+      // Check recentSessions specifically
+      sessionsList.innerHTML =
+        '<div class="empty-state card">No saved sessions yet.</div>'; // Apply card style
+      return;
+    }
+
     sessionsList.innerHTML = recentSessions
       .map((session) => {
         const date = new Date(session.createdAt).toLocaleDateString([], {
-          year: "numeric",
           month: "short",
           day: "numeric",
-        });
+        }); // Simpler date
         const tabCount = session.tabs.length;
         const groupCount = session.tabGroups?.length || 0;
 
         return `
-        <div class="session-item" data-id="${session.id}">
-          <div class="session-header">
-            <span class="session-title" title="${session.name}">${
+        <div class="session-item card" data-id="${session.id}">
+          <div class="session-item-header">
+            <span class="session-item-title" title="${session.name}">${
           session.name
         }</span>
-            <span class="session-date">${date}</span>
+            <span class="session-item-date">${date}</span>
           </div>
-          <div class="session-stats">
+          <div class="session-item-stats">
             ${tabCount} tab${tabCount !== 1 ? "s" : ""}
             ${
               groupCount > 0
-                ? ` (${groupCount} group${groupCount !== 1 ? "s" : ""})`
+                ? ` <span class="dimmed">(${groupCount} group${
+                    groupCount !== 1 ? "s" : ""
+                  })</span>` // Dimmed class for less emphasis
                 : ""
             }
           </div>
-          <div class="session-actions">
-            <button class="btn-popup primary restore-btn" data-id="${
+          <div class="session-item-actions">
+            <button class="btn btn-primary btn-small restore-btn" data-id="${
               session.id
-            }" title="Restore session in current window">Restore</button>
-            <button class="btn-popup secondary delete-btn" data-id="${
+            }" title="Restore session">Restore</button>
+            <button class="btn btn-danger btn-small delete-btn" data-id="${
+              // Changed to btn-danger
               session.id
             }" title="Delete this session">Delete</button>
           </div>

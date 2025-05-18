@@ -1,219 +1,231 @@
-/* Reset and base styles */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+/* css/popup.css */
+
+/* Ensure global.css is linked first in your popup.html for variables and base styles */
 
 body {
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  font-size: 14px;
-  color: #333;
-  background-color: #f9f9f9;
+  font-family: var(--font-family-sans);
+  background-color: var(
+    --background-main
+  ); /* NEW: Use brand's main background */
+  color: var(--text-primary); /* NEW: Use brand's primary text color */
+  margin: 0;
+  padding: 0; /* Crucial: Remove default body padding for popups */
+  width: 380px; /* Explicit width for the popup body */
+  min-height: 250px; /* Give it some minimum substance */
+  max-height: 580px; /* Common max for popups */
+  overflow: hidden; /* Prevent body itself from scrolling; children will scroll */
+  display: flex; /* Prepare for flex container inside */
+  flex-direction: column; /* Make body a flex column */
 }
 
-.container {
-  width: 350px;
-  min-height: 400px;
+.popup-container {
+  padding: var(--spacing-md);
   display: flex;
   flex-direction: column;
+  flex-grow: 1; /* Allow container to fill the body height */
+  min-height: 0; /* Important for flex children that need to scroll */
 }
 
-/* Header styles */
-header {
-  padding: 15px;
-  background-color: #4285f4;
-  color: white;
+.popup-header {
   text-align: center;
-  border-bottom: 1px solid #3367d6;
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--border-color); /* NEW: Use generic border color */
+  flex-shrink: 0; /* Prevent header from shrinking */
 }
 
-header h1 {
-  font-size: 20px;
-  font-weight: 500;
+.popup-header h1 {
+  font-size: 1.5em;
+  color: var(--primary-accent); /* NEW: Use brand's primary accent */
+  font-weight: var(--font-weight-bold);
+  margin: 0;
 }
 
-/* Main content styles */
-main {
-  flex: 1;
-  padding: 15px;
+.popup-main {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--spacing-md); /* Reduced gap slightly */
+  flex-grow: 1; /* Allow main content to take available space */
+  overflow: hidden; /* Contains its children, list will scroll */
+  min-height: 0; /* For flex context */
 }
 
-/* Quick actions section */
+/* Quick Actions & Save Form */
 .quick-actions {
+  margin-bottom: var(--spacing-sm); /* Add some space below */
+  flex-shrink: 0; /* Prevent this section from shrinking */
+}
+.quick-actions .btn-full-width {
+  width: 100%;
+  padding-top: var(--spacing-sm); /* Adjust padding for better feel */
+  padding-bottom: var(--spacing-sm);
+  font-size: 1rem;
+}
+
+#saveSessionForm.card {
+  /* Ensure it uses card styles from global.css */
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-md);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--spacing-sm);
+  /* background-color will come from .card in global.css (var(--background-card)) */
+  /* border will come from .card in global.css (var(--border-color)) */
 }
-
-/* Button styles */
-.btn {
-  padding: 10px 15px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s;
+#saveSessionForm input[type="text"] {
+  margin-bottom: var(--spacing-sm);
 }
-
-.btn.primary {
-  background-color: #4285f4;
-  color: white;
-}
-
-.btn.primary:hover {
-  background-color: #3367d6;
-}
-
-.btn.secondary {
-  background-color: #f1f1f1;
-  color: #333;
-}
-
-.btn.secondary:hover {
-  background-color: #e4e4e4;
-}
-
-/* Form styles */
-#saveSessionForm {
+#saveSessionForm .form-actions {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 10px;
-  background-color: #f1f1f1;
-  border-radius: 4px;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
 }
 
-#saveSessionForm.hidden {
-  display: none;
-}
-
-#sessionName {
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.form-actions {
-  display: flex;
-  gap: 10px;
-}
-
-/* Sessions list styles */
+/* Sessions List */
 .sessions-container {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1; /* Critical for making the list area scrollable */
+  min-height: 0; /* Necessary for flex-grow to work with overflow */
 }
-
-.sessions-container h2 {
-  font-size: 16px;
-  margin-bottom: 10px;
-  color: #555;
+.sessions-container .sessions-title {
+  font-size: 1.1em;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary); /* NEW */
+  margin-bottom: var(--spacing-sm);
+  padding-bottom: var(--spacing-xs);
+  border-bottom: 1px solid var(--border-color); /* NEW */
+  flex-shrink: 0; /* Prevent title from shrinking */
 }
 
 .sessions-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  max-height: 250px;
-  overflow-y: auto;
+  gap: var(--spacing-sm);
+  flex-grow: 1; /* This makes the list take the available space */
+  overflow-y: auto; /* And this makes IT scrollable */
+  padding: var(--spacing-xs); /* Add some internal padding */
+  margin-right: calc(var(--spacing-xs) * -1); /* Offset scrollbar */
+  background-color: var(
+    --background-card
+  ); /* NEW: Background for the list area */
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-color); /* NEW */
 }
 
-.session-item {
-  padding: 10px;
-  background-color: white;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+/* Styling for individual session items (which have .card from JS) */
+.session-item.card {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(
+    --white
+  ); /* Make items stand out against list background */
+  border-color: var(
+    --border-color
+  ); /* Consistent border from global or override if needed */
+  margin-bottom: var(
+    --spacing-sm
+  ); /* Ensure space if not using gap from parent directly */
+}
+.session-item.card:last-child {
+  margin-bottom: 0; /* No margin for the last item if using gap */
 }
 
-.session-header {
+.session-item-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: var(--spacing-xs);
 }
-
-.session-title {
-  font-weight: 500;
+.session-item-title {
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary); /* NEW */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-grow: 1;
+  margin-right: var(--spacing-sm);
 }
-
-.session-date {
-  font-size: 12px;
-  color: #777;
+.session-item-date {
+  font-size: 0.8em;
+  color: var(--text-secondary); /* NEW */
+  flex-shrink: 0;
 }
-
-.session-stats {
-  font-size: 12px;
-  color: #555;
+.session-item-stats {
+  font-size: 0.85em;
+  color: var(--text-secondary); /* NEW */
+  margin-bottom: var(--spacing-sm);
 }
-
-.session-actions {
+.session-item-stats .dimmed {
+  color: var(
+    --primary-accent
+  ); /* NEW: Use accent for group count for a bit of color */
+  opacity: 0.75;
+}
+.session-item-actions {
   display: flex;
-  gap: 5px;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm); /* Give actions more space */
+}
+.btn-small {
+  /* This style is already in global.css if you prefer */
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: 0.8rem;
+  font-weight: var(
+    --font-weight-medium
+  ); /* Ensure this is same as .btn if not overriding */
 }
 
-.session-actions button {
-  padding: 5px 10px;
-  font-size: 12px;
-}
-
-.empty-state {
-  padding: 20px;
+.empty-state.card {
   text-align: center;
-  color: #777;
+  padding: var(--spacing-lg);
+  color: var(--text-secondary); /* NEW */
   font-style: italic;
+  background-color: transparent; /* No distinct background for empty state in list */
+  border: none; /* No border either */
+  margin: auto; /* Center it if the list is the only thing */
 }
 
-/* Footer styles */
-footer {
-  padding: 10px 15px;
-  background-color: #f1f1f1;
-  border-top: 1px solid #ddd;
+/* Footer */
+.popup-footer {
+  margin-top: auto; /* Push to bottom */
+  padding-top: var(--spacing-sm); /* Reduced padding */
+  border-top: 1px solid var(--border-color); /* NEW */
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.footer-actions {
-  display: flex;
-  gap: 15px;
-  justify-content: center;
-}
-
-.footer-links {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 0.85em;
+  flex-shrink: 0; /* Prevent footer from being squished */
+  padding-bottom: var(--spacing-sm); /* Add some bottom padding */
+}
+.popup-footer .footer-actions,
+.popup-footer .footer-links {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-md);
+  width: 100%;
+}
+.popup-footer .btn-link {
+  /* .btn-link style comes from global.css */
+  font-size: 0.9em;
+  color: var(--text-secondary); /* NEW: Softer color */
+}
+.popup-footer .btn-link:hover {
+  color: var(--primary-accent); /* NEW */
 }
 
-.btn-link {
-  background: none;
-  border: none;
-  color: #4285f4;
-  cursor: pointer;
-  font-size: 13px;
-  padding: 0;
-  text-decoration: underline;
+/* Scrollbar styling */
+.sessions-list::-webkit-scrollbar {
+  width: 6px; /* Thinner scrollbar */
 }
-
-.btn-link:hover {
-  color: #3367d6;
+.sessions-list::-webkit-scrollbar-track {
+  background: transparent; /* Let list background show through */
 }
-
-.dashboard-link {
-  color: #4285f4;
-  text-decoration: none;
+.sessions-list::-webkit-scrollbar-thumb {
+  background-color: var(--border-color); /* NEW: Use subtle border color */
+  border-radius: var(--border-radius-md);
 }
-
-.dashboard-link:hover {
-  text-decoration: underline;
-}
-
-.version {
-  font-size: 12px;
-  color: #777;
+.sessions-list::-webkit-scrollbar-thumb:hover {
+  background-color: var(--primary-accent); /* NEW: Use accent on hover */
 }

@@ -1,15 +1,21 @@
+/* css/global.css */
+
 /* Import Inter font */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 :root {
-  /* Color Palette */
-  --primary-violet: #7c3aed;
-  --primary-violet-darker: #6d28d9; /* For hover states */
-  --soft-lavender: #f5f3ff; /* Backgrounds, cards */
-  --light-purple: #c4b5fd; /* Inactive, highlights, borders */
-  --slate-gray: #475569; /* Borders, minor text */
-  --deep-navy: #1e293b; /* Primary text, icons */
+  /* NEW Color Palette - Based on your Coolors export */
+  --primary-accent: #5a5dd1; /* Savoy Blue - for primary actions, highlights */
+  --primary-accent-darker: #3b3a8f; /* Marian Blue - for hover, darker shades */
+  --background-main: #f5faff; /* Alice Blue 2 - main page background */
+  --background-card: #f1f9ff; /* Alice Blue - for cards, lighter elements */
+  --text-primary: #232181; /* Resolution Blue - for main text, headings */
+  --text-secondary: #3b3a8f; /* Marian Blue - for secondary text, descriptions */
+  --border-color: #a8a9ac; /* A neutral light gray for borders, can be adjusted */
+  --border-color-strong: #5a5dd1; /* Savoy Blue for focused borders */
   --white: #ffffff;
+
+  /* Status Colors */
   --success-bg: #e8f5e9;
   --success-text: #2e7d32;
   --success-border: #a5d6a7;
@@ -25,16 +31,16 @@
   --font-weight-bold: 700;
 
   /* Spacing & Sizing */
-  --spacing-xs: 0.25rem; /* 4px */
-  --spacing-sm: 0.5rem; /* 8px */
-  --spacing-md: 1rem; /* 16px */
-  --spacing-lg: 1.5rem; /* 24px */
-  --spacing-xl: 2rem; /* 32px */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
 
   /* Borders */
-  --border-radius-sm: 0.25rem; /* 4px */
-  --border-radius-md: 0.5rem; /* 8px */
-  --border-radius-lg: 0.75rem; /* 12px */
+  --border-radius-sm: 0.25rem;
+  --border-radius-md: 0.5rem;
+  --border-radius-lg: 0.75rem;
 
   /* Transitions */
   --transition-fast: 0.2s ease;
@@ -59,23 +65,43 @@
 
 body {
   font-family: var(--font-family-sans);
-  background-color: var(
-    --soft-lavender
-  ); /* Default page background for options/dashboard */
-  color: var(--deep-navy);
+  background-color: var(--background-main);
+  color: var(--text-primary);
   line-height: 1.6;
   font-weight: var(--font-weight-regular);
 }
 
+/* General link styling */
+a {
+  color: var(--primary-accent);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+a:hover {
+  color: var(--primary-accent-darker);
+  text-decoration: underline;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--spacing-sm);
+}
+
 /* === Buttons === */
 .btn {
-  display: inline-block; /* Allows setting padding and respects text-align from parent */
-  padding: var(--spacing-sm) var(--spacing-md); /* 0.5rem 1rem */
+  display: inline-block;
+  padding: var(--spacing-sm) var(--spacing-md);
   border: none;
-  border-radius: var(--border-radius-md); /* 0.5rem */
+  border-radius: var(--border-radius-md);
   font-family: var(--font-family-sans);
   font-weight: var(--font-weight-medium);
-  font-size: 0.95rem; /* Slightly smaller than base 1rem */
+  font-size: 0.95rem;
   cursor: pointer;
   text-align: center;
   text-decoration: none;
@@ -85,7 +111,7 @@ body {
 }
 .btn:hover {
   box-shadow: var(--shadow-md);
-  transform: translateY(-1px); /* Subtle lift */
+  transform: translateY(-1px);
 }
 .btn:active {
   transform: translateY(0px);
@@ -93,67 +119,68 @@ body {
 }
 
 .btn-primary {
-  background-color: var(--primary-violet);
+  background-color: var(--primary-accent); /* UPDATED */
   color: var(--white);
 }
 .btn-primary:hover {
-  background-color: var(--primary-violet-darker);
+  background-color: var(--primary-accent-darker); /* UPDATED */
 }
 
 .btn-secondary {
-  background-color: var(--soft-lavender);
-  color: var(--primary-violet);
-  border: 1px solid var(--light-purple);
+  background-color: var(--background-card); /* UPDATED */
+  color: var(--primary-accent); /* UPDATED */
+  border: 1px solid var(--primary-accent); /* UPDATED - border with accent */
 }
 .btn-secondary:hover {
-  background-color: var(--light-purple); /* Lighten the lavender slightly */
-  color: var(--primary-violet-darker);
+  background-color: var(
+    --background-main
+  ); /* UPDATED - slightly different light bg for hover */
+  color: var(--primary-accent-darker); /* UPDATED */
 }
 
 .btn-danger {
-  /* For delete buttons */
-  background-color: #f87171; /* A soft red */
+  background-color: #ef4444; /* Standard Red */
   color: var(--white);
 }
 .btn-danger:hover {
-  background-color: #ef4444; /* A darker red */
+  background-color: #dc2626; /* Darker Red */
 }
 
 .btn-link {
-  /* For text-based buttons like Export/Import in popup footer */
   background-color: transparent;
-  color: var(--primary-violet);
+  color: var(--primary-accent); /* UPDATED */
   padding: var(--spacing-xs) var(--spacing-sm);
   box-shadow: none;
   font-weight: var(--font-weight-medium);
 }
 .btn-link:hover {
-  color: var(--primary-violet-darker);
+  color: var(--primary-accent-darker); /* UPDATED */
   text-decoration: underline;
-  transform: none; /* No lift for link buttons */
+  transform: none;
   box-shadow: none;
 }
 .btn:disabled,
 .btn[disabled] {
-  /* Styling for disabled buttons */
-  background-color: var(--light-purple) !important;
-  color: var(--slate-gray) !important;
+  background-color: var(
+    --border-color
+  ) !important; /* UPDATED - using neutral gray */
+  color: var(
+    --text-secondary
+  ) !important; /* UPDATED - using secondary text, slightly darker */
+  opacity: 0.7; /* Dim disabled state */
   cursor: not-allowed;
   box-shadow: none !important;
   transform: none !important;
 }
 
 /* === Cards === */
-/* This will be a base for session cards, setting sections etc. */
 .card {
-  background-color: var(
-    --white
-  ); /* Or var(--soft-lavender) if you prefer cards to match page bg and use borders for definition */
-  border: 1px solid var(--light-purple);
-  border-radius: var(--border-radius-lg); /* 0.75rem */
-  padding: var(--spacing-md); /* 1rem */
+  background-color: var(--background-card); /* UPDATED */
+  border: 1px solid var(--border-color); /* UPDATED - using neutral border */
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-md);
   margin-bottom: var(--spacing-md);
-  color: var(--deep-navy);
+  color: var(--text-primary); /* UPDATED */
   box-shadow: var(--shadow-sm);
   transition: box-shadow var(--transition-fast);
 }
@@ -163,26 +190,26 @@ body {
 .card-header {
   margin-bottom: var(--spacing-sm);
   padding-bottom: var(--spacing-sm);
-  border-bottom: 1px solid var(--light-purple); /* Softer separator */
+  border-bottom: 1px solid var(--border-color); /* UPDATED */
 }
 .card-title {
   font-size: 1.1em;
   font-weight: var(--font-weight-semibold);
-  color: var(--deep-navy);
+  color: var(--text-primary); /* UPDATED */
   margin: 0;
 }
 
 /* === Form Inputs & Selects === */
 input[type="text"],
-input[type="search"], /* For search input */
+input[type="search"],
 select,
 textarea {
   width: 100%;
-  padding: var(--spacing-sm) var(--spacing-md); /* 0.5rem 1rem */
-  border: 1px solid var(--light-purple);
-  border-radius: var(--border-radius-md); /* 0.5rem */
-  background-color: var(--white);
-  color: var(--deep-navy);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--border-color); /* UPDATED */
+  border-radius: var(--border-radius-md);
+  background-color: var(--white); /* Inputs usually have white background */
+  color: var(--text-primary); /* UPDATED */
   font-family: var(--font-family-sans);
   font-size: 0.95rem;
   transition: border-color var(--transition-fast),
@@ -193,30 +220,28 @@ input[type="search"]:focus,
 select:focus,
 textarea:focus {
   outline: none;
-  border-color: var(--primary-violet);
-  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2); /* Focus ring with primary violet */
+  border-color: var(--border-color-strong); /* UPDATED */
+  box-shadow: 0 0 0 2px rgba(90, 93, 209, 0.2); /* Focus ring with new primary accent */
 }
 textarea {
   min-height: 80px;
   resize: vertical;
 }
 label {
-  /* Basic label styling */
   display: block;
   margin-bottom: var(--spacing-xs);
   font-weight: var(--font-weight-medium);
-  color: var(--slate-gray); /* Using slate gray for labels for softer look */
+  color: var(--text-secondary); /* UPDATED */
 }
 
-/* === Toggle Switches (Basic - can be enhanced with pseudo-elements later) === */
-/* For now, we'll style checkboxes to look a bit better, actual toggles need more CSS */
+/* === Toggle Switches (Checkboxes) === */
 input[type="checkbox"] {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
   width: 18px;
   height: 18px;
-  border: 2px solid var(--light-purple);
+  border: 2px solid var(--border-color); /* UPDATED */
   border-radius: var(--border-radius-sm);
   vertical-align: middle;
   cursor: pointer;
@@ -225,11 +250,10 @@ input[type="checkbox"] {
     border-color var(--transition-fast);
 }
 input[type="checkbox"]:checked {
-  background-color: var(--primary-violet);
-  border-color: var(--primary-violet);
+  background-color: var(--primary-accent); /* UPDATED */
+  border-color: var(--primary-accent); /* UPDATED */
 }
 input[type="checkbox"]:checked::after {
-  /* Checkmark */
   content: "";
   display: block;
   width: 5px;
@@ -239,9 +263,8 @@ input[type="checkbox"]:checked::after {
   transform: rotate(45deg) translate(-50%, -50%);
   position: absolute;
   left: 50%;
-  top: 45%; /* Adjusted for better centering */
+  top: 45%;
 }
-/* For labels associated with checkboxes */
 label input[type="checkbox"] {
   margin-right: var(--spacing-sm);
 }
@@ -261,27 +284,4 @@ label input[type="checkbox"] {
 }
 .p-1 {
   padding: var(--spacing-sm);
-}
-
-/* General link styling */
-a {
-  color: var(--primary-violet);
-  text-decoration: none;
-  transition: color var(--transition-fast);
-}
-
-a:hover {
-  color: var(--primary-violet-darker);
-  text-decoration: underline;
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  color: var(--deep-navy);
-  font-weight: var(--font-weight-semibold);
-  margin-bottom: var(--spacing-sm);
 }

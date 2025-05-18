@@ -4,53 +4,88 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TabNest</title>
+    <link rel="stylesheet" href="css/global.css" />
     <link rel="stylesheet" href="css/popup.css" />
   </head>
   <body>
-    <div class="container">
-      <header>
+    <div class="popup-container">
+      <!-– Changed class for specificity -->
+      <header class="popup-header">
         <h1>TabNest</h1>
       </header>
 
-      <main>
+      <main class="popup-main">
         <div class="quick-actions">
-          <button id="saveTabsBtn" class="btn primary">
+          <button id="saveTabsBtn" class="btn btn-primary btn-full-width">
+            <!-- Added btn-full-width -->
             Save Current Tabs
           </button>
-          <div id="saveSessionForm" class="hidden">
-            <input type="text" id="sessionName" placeholder="Session name" />
+          <div id="saveSessionForm" class="hidden card">
+            <!-- Added card class, can be styled further -->
+            <input
+              type="text"
+              id="sessionName"
+              placeholder="Session name (e.g., Work Project)"
+            />
             <div class="form-actions">
-              <button id="confirmSaveBtn" class="btn primary">Save</button>
-              <button id="cancelSaveBtn" class="btn secondary">Cancel</button>
+              <button id="confirmSaveBtn" class="btn btn-primary">Save</button>
+              <button id="cancelSaveBtn" class="btn btn-secondary">
+                Cancel
+              </button>
             </div>
           </div>
         </div>
 
         <div class="sessions-container">
-          <h2>Saved Sessions</h2>
+          <h2 class="sessions-title">Recent Sessions</h2>
+          <!-- Changed h2 class -->
           <div id="sessionsList" class="sessions-list">
-            <!-- Sessions will be populated here -->
-            <div class="empty-state">No saved sessions yet</div>
+            <!-- Session items will be dynamically generated here
+                 Example of a dynamically generated session item (for styling reference):
+            <div class="session-item card">
+              <div class="session-item-header">
+                <span class="session-item-title">My Work Session</span>
+                <span class="session-item-date">10/26/2023</span>
+              </div>
+              <div class="session-item-stats">
+                5 tabs (2 groups)
+              </div>
+              <div class="session-item-actions">
+                <button class="btn btn-primary btn-small restore-btn" data-id="123">Restore</button>
+                <button class="btn btn-danger btn-small delete-btn" data-id="123">Delete</button>
+              </div>
+            </div>
+            -->
+            <div class="empty-state card hidden">No saved sessions yet.</div>
+            <!-- Added card, initially hidden -->
           </div>
         </div>
       </main>
 
-      <footer>
+      <footer class="popup-footer">
         <div class="footer-actions">
-          <button id="exportBtn" class="btn-link">Export</button>
-          <button id="importBtn" class="btn-link">Import</button>
+          <button id="exportBtn" class="btn btn-link">Export</button>
+          <button id="importBtn" class="btn btn-link">Import</button>
         </div>
         <div class="footer-links">
-          <a href="#" id="settingsLinkPopup" class="settings-link">Settings</a>
+          <a href="#" id="settingsLinkPopup" class="btn btn-link">Settings</a>
+          <!-- Styled as btn-link -->
           <a
             href="dashboard.html"
             target="_blank"
             id="manageAllLink"
-            class="dashboard-link"
-            >Open Dashboard</a
+            class="btn btn-link"
+            <!--
+            Styled
+            as
+            btn-link
+            --
           >
-          <span class="version">v0.7.0</span>
+            >Dashboard</a
+          >
         </div>
+        <!-- Version can stay as a span or be styled differently if needed -->
+        <!-- <span class="version">v0.7.0</span> removed for cleaner footer -->
       </footer>
     </div>
 
