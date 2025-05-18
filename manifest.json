@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TabNest",
-  "version": "0.2.0",
+  "version": "0.2.5",
   "description": "Save and restore your tabs and tab groups with a single click",
   "permissions": ["tabs", "tabGroups", "storage"],
   "action": {

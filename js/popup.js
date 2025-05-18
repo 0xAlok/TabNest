@@ -258,16 +258,31 @@ async function restoreSession(sessionId) {
       }
     }
 
-    // Find any tabs that weren't in groups or weren't processed yet
+    // Process ungrouped tabs separately to ensure they're always restored
+    console.log(`Restoring ${ungroupedTabs.length} ungrouped tabs`);
+    for (const tab of ungroupedTabs) {
+      // Skip if this tab was somehow already processed (shouldn't happen for ungrouped tabs)
+      if (processedTabs.has(tab.id)) {
+        console.log(`Skipping already processed tab: ${tab.title}`);
+        continue;
+      }
+
+      console.log(`Restoring ungrouped tab: ${tab.title} (${tab.url})`);
+      const newTab = await chrome.tabs.create({ url: tab.url });
+      tabIdMap[tab.id] = newTab.id;
+      processedTabs.add(tab.id);
+    }
+
+    // Find any tabs that weren't in groups or weren't processed yet (as a safety net)
     const remainingTabs = session.tabs.filter(
       (tab) => !processedTabs.has(tab.id)
     );
     console.log(`Found ${remainingTabs.length} remaining tabs to restore`);
 
-    // Restore all remaining tabs
+    // Restore any remaining tabs (this should be 0 if the above logic works correctly)
     if (remainingTabs.length > 0) {
       for (const tab of remainingTabs) {
-        console.log(`Restoring tab: ${tab.title} (${tab.url})`);
+        console.log(`Restoring remaining tab: ${tab.title} (${tab.url})`);
         const newTab = await chrome.tabs.create({ url: tab.url });
         tabIdMap[tab.id] = newTab.id;
       }
