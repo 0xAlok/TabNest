@@ -176,40 +176,40 @@ async function loadSavedSessions() {
       .map((session) => {
         const date = new Date(session.createdAt).toLocaleDateString([], {
           month: "short",
-          day: "numeric",
-        }); // Simpler date
+          day: "numeric", // Date is already like "May 18"
+        });
         const tabCount = session.tabs.length;
         const groupCount = session.tabGroups?.length || 0;
 
+        // This structure is what we will style:
         return `
-        <div class="session-item card" data-id="${session.id}">
-          <div class="session-item-header">
-            <span class="session-item-title" title="${session.name}">${
+      <div class="session-item-card" data-id="${session.id}">
+        <div class="session-item-header">
+          <span class="session-title-text" title="${session.name}">${
           session.name
         }</span>
-            <span class="session-item-date">${date}</span>
-          </div>
-          <div class="session-item-stats">
+          <span class="session-date-text">${date}</span>
+        </div>
+        <div class="session-item-body">
+          <p class="session-meta-text">
             ${tabCount} tab${tabCount !== 1 ? "s" : ""}
             ${
               groupCount > 0
-                ? ` <span class="dimmed">(${groupCount} group${
-                    groupCount !== 1 ? "s" : ""
-                  })</span>` // Dimmed class for less emphasis
+                ? `(${groupCount} group${groupCount !== 1 ? "s" : ""})`
                 : ""
             }
-          </div>
-          <div class="session-item-actions">
-            <button class="btn btn-primary btn-small restore-btn" data-id="${
+          </p>
+          <div class="session-actions-inline">
+            <button class="btn btn-restore restore-btn" data-id="${
               session.id
-            }" title="Restore session">Restore</button>
-            <button class="btn btn-danger btn-small delete-btn" data-id="${
-              // Changed to btn-danger
+            }">Restore</button>
+            <button class="btn btn-delete delete-btn" data-id="${
               session.id
-            }" title="Delete this session">Delete</button>
+            }">Delete</button>
           </div>
         </div>
-      `;
+      </div>
+    `;
       })
       .join("");
 
