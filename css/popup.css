@@ -259,9 +259,12 @@ body {
 }
 .footer-link {
   /* This is an <a> tag from HTML */
+  display: flex; /* Added for icon-text alignment */
+  align-items: center; /* Added for icon-text alignment */
   color: var(--text-secondary);
   text-decoration: none;
   padding: var(--spacing-xs); /* Minimal padding around text */
+  flex-grow: 1; /* Allow items to grow and fill space if using space-around */
   border-radius: var(--border-radius-sm);
   transition: color var(--transition-fast),
     background-color var(--transition-fast);
@@ -269,6 +272,15 @@ body {
     --font-weight-medium
   ); /* Make footer links slightly bolder */
 }
+
+.footer-link svg {
+  width: 1em; /* Relative to font size of link */
+  height: 1em;
+  margin-right: var(--spacing-xs); /* Space between icon and text */
+  vertical-align: -0.125em; /* Fine-tune vertical alignment */
+  fill: currentColor; /* SVG inherits color from parent link */
+}
+
 .footer-link:hover {
   color: var(--primary-accent);
   background-color: var(--background-card);
