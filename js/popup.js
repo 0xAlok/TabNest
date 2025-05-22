@@ -154,6 +154,16 @@ async function loadSavedSessions() {
       return;
     }
 
+    const emptyStateHTML = `
+    <div class="empty-state-content">
+      <svg class="empty-state-icon" viewBox="0 0 24 24" width="64" height="64"> <!-- Example SVG -->
+        <path fill="currentColor" d="M4,6A2,2 0 0,1 2,4A2,2 0 0,1 4,2H10L12,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,6M11,13V17H13V13H11M11,9V11H13V9H11Z" />
+      </svg>
+      <p>No sessions saved yet.</p>
+      <p class="empty-state-subtext">Click "Save Current Tabs" to get started!</p>
+    </div>
+  `;
+
     if (!sessions || sessions.length === 0) {
       sessionsList.innerHTML =
         '<div class="empty-state">No saved sessions yet.</div>';
