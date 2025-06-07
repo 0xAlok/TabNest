@@ -61,7 +61,7 @@ async function restoreSessionInWorker(sessionId, inNewWindowFromMessage) {
     // The 'inNewWindowFromMessage' (from UI button) takes precedence.
     // If it's not explicitly set (e.g., could be undefined if called from a context without explicit choice),
     // then use the user's default setting.
-    let shouldOpenInNewWindow;
+    let shouldOpenInNewWindow;+6
     if (typeof inNewWindowFromMessage === "boolean") {
       shouldOpenInNewWindow = inNewWindowFromMessage;
     } else {
